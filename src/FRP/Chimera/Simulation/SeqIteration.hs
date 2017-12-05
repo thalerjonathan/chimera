@@ -3,14 +3,13 @@ module FRP.Chimera.Simulation.SeqIteration
     simulateSeq
   ) where
 
-import Control.Concurrent.STM.TVar
 import Data.Maybe
+
+import Control.Concurrent.STM.TVar
 import qualified Data.Map as Map
+import FRP.BearRiver
 
-import FRP.Yampa
-import FRP.Yampa.InternalCore
-
-import FRP.Chimera.Agent.Agent
+import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Internal
 import FRP.Chimera.Simulation.Common

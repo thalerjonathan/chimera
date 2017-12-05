@@ -21,18 +21,10 @@ module FRP.Chimera.Agent.Reactive
   -}
   ) where
 
-import Data.Maybe
-
 import Control.Monad.State
-import Control.Monad.Random
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Agent.Monad
-import FRP.Chimera.Environment.Discrete
-import FRP.Chimera.Environment.Network
-import FRP.Chimera.Random.Monadic 
-import FRP.Chimera.Random.Reactive
 
 type AgentIgnoreEnv m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e) ()
 type AgentReadEnv m o d e   = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) () 

@@ -17,7 +17,18 @@ module FRP.Chimera.Reactive.DataFlow
   , randomAgentIdMsgSource
   ) where
 
+import Data.Maybe
+    
+import Control.Monad.State
+import Control.Monad.Random
+import FRP.BearRiver
+
+import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Environment.Discrete
+import FRP.Chimera.Environment.Network
+import FRP.Chimera.Random.Monadic 
+import FRP.Chimera.Random.Reactive
 
 type DataSource m o d e = SF m (AgentIn o d e, e) (AgentData d)
 

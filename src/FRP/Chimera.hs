@@ -1,6 +1,6 @@
 module FRP.Chimera 
   (
-  -- FRP.Chimera.Agent.Agent.hs
+  -- FRP.Chimera.Agent.Interface
     AgentId
   , AgentData
   , DataFilter
@@ -59,7 +59,7 @@ module FRP.Chimera
   , agentPureReadEnv
   , agentPureIgnoreEnv
 
-  -- FRP.Chimera.Agent.Monad.hs
+  -- FRP.Chimera.Agent.Monad
   , AgentMonadic
   , AgentMonadicReadEnv
   , AgentMonadicNoEnv
@@ -91,12 +91,42 @@ module FRP.Chimera
 
   , ifThenElse
   , ifThenElseM
+
+  -- FRP.Chimera.Agent.Reactive
+  , AgentIgnoreEnv
+  , AgentReadEnv
+
+  , ignoreEnv
+  , readEnv
+
+  -- FRP.Chimera.Agent.Stream
+  , dataFlowS
+
+  -- FRP.Chimera.Reactive.Transitions
+  , EventSource
+  
+  , transitionAfter
+  , transitionAfterExpSS
+  
+  {-
+  
+  , transitionAfterExp
+  , transitionWithUniProb
+  , transitionWithExpProb
+  , transitionOnEvent
+  , transitionOnBoolState
+  , transitionOnData
+  , transitionOnEventWithGuard
+  -}
   ) where
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
+
+import FRP.Chimera.Reactive.Transitions
+{-
 import FRP.Chimera.Environment.Continuous
 import FRP.Chimera.Environment.Definitions
 import FRP.Chimera.Environment.Discrete
@@ -116,6 +146,7 @@ import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 
 import FRP.Chimera.Simulation.Replication   
 import FRP.Chimera.Simulation.Simulation
+-}
 
 {-
 ------------------------------------------------------------------------------------------------------------------------

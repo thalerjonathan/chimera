@@ -5,15 +5,14 @@ module FRP.Chimera.Simulation.ParIteration
     simulatePar
   ) where
 
-import qualified Data.Map as Map
 import Data.Maybe
+
 import Control.Concurrent.STM.TVar
 import Control.Parallel.Strategies
+import qualified Data.Map as Map
+import FRP.BearRiver
 
-import FRP.Yampa
-import FRP.Yampa.InternalCore
-
-import FRP.Chimera.Agent.Agent
+import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Internal
 import FRP.Chimera.Simulation.Common
@@ -43,10 +42,10 @@ import FRP.Chimera.Simulation.Common
 -- NOTE: it was decided that we provide our own implementation as it was not possible to implement these
 -- iterations with Yampas existing primitives
 simulatePar :: SimulationParams e
-                -> [AgentBehaviour s m e]
-                -> [AgentIn s m e]
-                -> e
-                -> SF () (SimulationStepOut s e)
+            -> [Agent m o d e]
+            -> [AgentIn o d e]
+            -> e
+            -> SF () (SimulationStepOut s e)
 simulatePar initParams initSfs initIns initEnv = SF { sfTF = tf0 }
   where
     tf0 _ = (tfCont, (initTime, [], initEnv))
@@ -75,10 +74,10 @@ simulatePar initParams initSfs initIns initEnv = SF { sfTF = tf0 }
                 tf' = simulateParAux params'' sfsShuffled insShuffled e' t'
 
 foldEnvironments :: Double 
-                    -> SimulationParams e 
-                    -> [e] 
-                    -> e 
-                    -> (e, SimulationParams e)
+                 -> SimulationParams e 
+                 -> [e] 
+                 -> e 
+                 -> (e, SimulationParams e)
 foldEnvironments dt params allEnvs defaultEnv
     | isFoldingEnv = runEnv dt params foldedEnv 
     | otherwise = (defaultEnv, params)
@@ -91,26 +90,26 @@ foldEnvironments dt params allEnvs defaultEnv
     foldedEnv = envFoldFun allEnvs 
 
 iterateAgents :: DTime 
-                -> [AgentBehaviour s m e] 
-                -> [AgentIn s m e] 
-                -> e
-                -> ([AgentBehaviour s m e], [AgentOut s m e], [e])
+              -> [Agent m o d e] 
+              -> [AgentIn o d e] 
+              -> e
+              -> ([Agent m o d e], [AgentOut s m e], [e])
 iterateAgents dt sfs ins e = unzip3 sfsOutsEnvs
   where
     -- NOTE: speedup by running in parallel (if +RTS -Nx)
     sfsOutsEnvs = parMap rpar (iterateAgentsAux e) (zip sfs ins)
 
     iterateAgentsAux :: e
-                        -> (AgentBehaviour s m e, AgentIn s m e)
-                        -> (AgentBehaviour s m e, AgentOut s m e, e)
+                        -> (Agent m o d e, AgentIn o d e)
+                        -> (Agent m o d e, AgentOut s m e, e)
     iterateAgentsAux e (sf, ain) = (sf', ao, e')
       where
         (sf', (ao, e')) = runAndFreezeSF sf (ain, e) dt
 
-nextStep :: [AgentIn s m e]
-            -> [AgentOut s m e]
-            -> [AgentBehaviour s m e]
-            -> ([AgentBehaviour s m e], [AgentIn s m e])
+nextStep :: [AgentIn o d e]
+         -> [AgentOut s m e]
+         -> [Agent m o d e]
+         -> ([Agent m o d e], [AgentIn o d e])
 nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
   where
     (asfs', newAgentIns) = processAgents asfs oldAgentIns newAgentOuts
@@ -118,25 +117,25 @@ nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
     newAgentOutsWithAis = map (\(ai, ao) -> (aiId ai, ao)) (zip oldAgentIns newAgentOuts) 
     newAgentIns' = distributeMessages newAgentIns newAgentOutsWithAis
 
-    processAgents :: [AgentBehaviour s m e]
-                        -> [AgentIn s m e]
-                        -> [AgentOut s m e]
-                        -> ([AgentBehaviour s m e], [AgentIn s m e])
+    processAgents :: [Agent m o d e]
+                  -> [AgentIn o d e]
+                  -> [AgentOut s m e]
+                  -> ([Agent m o d e], [AgentIn o d e])
     processAgents asfs oldIs newOs = foldr handleAgent ([], []) asfsIsOs
       where
         asfsIsOs = zip3 asfs oldIs newOs
 
-        handleAgent :: (AgentBehaviour s m e, AgentIn s m e, AgentOut s m e)
-                        -> ([AgentBehaviour s m e], [AgentIn s m e])
-                        -> ([AgentBehaviour s m e], [AgentIn s m e])
+        handleAgent :: (Agent m o d e, AgentIn o d e, AgentOut s m e)
+                    -> ([Agent m o d e], [AgentIn o d e])
+                    -> ([Agent m o d e], [AgentIn o d e])
         handleAgent a@(_, oldIn, newOut) acc = handleKillOrLiveAgent acc' a
           where
             idGen = aiIdGen oldIn
             acc' = handleCreateAgents idGen newOut acc 
 
-        handleKillOrLiveAgent :: ([AgentBehaviour s m e], [AgentIn s m e])
-                                    -> (AgentBehaviour s m e, AgentIn s m e, AgentOut s m e)
-                                    -> ([AgentBehaviour s m e], [AgentIn s m e])
+        handleKillOrLiveAgent :: ([Agent m o d e], [AgentIn o d e])
+                              -> (Agent m o d e, AgentIn o d e, AgentOut s m e)
+                              -> ([Agent m o d e], [AgentIn o d e])
         handleKillOrLiveAgent acc@(asfsAcc, ainsAcc) (sf, oldIn, newOut)
             | killAgent = acc
             | otherwise = (sf : asfsAcc, newIn : ainsAcc) 
@@ -145,9 +144,9 @@ nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
             newIn = newAgentIn oldIn
 
 handleCreateAgents :: TVar Int
-                        -> AgentOut s m e
-                        -> ([AgentBehaviour s m e], [AgentIn s m e])
-                        -> ([AgentBehaviour s m e], [AgentIn s m e])
+                   -> AgentOut s m e
+                   -> ([Agent m o d e], [AgentIn o d e])
+                   -> ([Agent m o d e], [AgentIn o d e])
 handleCreateAgents idGen ao acc@(asfsAcc, ainsAcc) 
     | hasCreateAgents = (asfsAcc ++ newSfs, ainsAcc ++ newAis)
     | otherwise = acc
@@ -158,14 +157,14 @@ handleCreateAgents idGen ao acc@(asfsAcc, ainsAcc)
     newSfs = map adBeh newAgentDefs
     newAis = map (startingAgentInFromAgentDef idGen) newAgentDefs
 
-distributeMessages :: [AgentIn s m e] -> [(AgentId, AgentOut s m e)] -> [AgentIn s m e]
+distributeMessages :: [AgentIn o d e] -> [(AgentId, AgentOut s m e)] -> [AgentIn o d e]
 distributeMessages ains aouts = parMap rpar (distributeMessagesAux allMsgs) ains -- NOTE: speedup by running in parallel (if +RTS -Nx)
   where
     allMsgs = collectAllMessages aouts
 
     distributeMessagesAux :: Map.Map AgentId [AgentMessage m]
-                                -> AgentIn s m e
-                                -> AgentIn s m e
+                          -> AgentIn o d e
+                          -> AgentIn o d e
     distributeMessagesAux allMsgs ain = ain'
       where
         receiverId = aiId ain
@@ -180,8 +179,8 @@ collectAllMessages :: [(AgentId, AgentOut s m e)] -> Map.Map AgentId [AgentMessa
 collectAllMessages aos = foldr collectAllMessagesAux Map.empty aos
   where
     collectAllMessagesAux :: (AgentId, AgentOut s m e)
-                                -> Map.Map AgentId [AgentMessage m]
-                                -> Map.Map AgentId [AgentMessage m]
+                          -> Map.Map AgentId [AgentMessage m]
+                          -> Map.Map AgentId [AgentMessage m]
     collectAllMessagesAux (senderId, ao) accMsgs 
         | isEvent msgsEvt = foldr collectAllMessagesAuxAux accMsgs (fromEvent msgsEvt)
         | otherwise = accMsgs
@@ -189,8 +188,8 @@ collectAllMessages aos = foldr collectAllMessagesAux Map.empty aos
         msgsEvt = aoMessages ao
 
         collectAllMessagesAuxAux :: AgentMessage m
-                                    -> Map.Map AgentId [AgentMessage m]
-                                    -> Map.Map AgentId [AgentMessage m]
+                                 -> Map.Map AgentId [AgentMessage m]
+                                 -> Map.Map AgentId [AgentMessage m]
         collectAllMessagesAuxAux (receiverId, m) accMsgs = accMsgs'
           where
             msg = (senderId, m)

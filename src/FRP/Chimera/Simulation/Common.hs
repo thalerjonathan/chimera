@@ -1,3 +1,4 @@
+{-# LANGUAGE Arrows #-}
 module FRP.Chimera.Simulation.Common 
   (
     SimulationStepOut
@@ -10,32 +11,29 @@ module FRP.Chimera.Simulation.Common
 
 import Data.Maybe
 
-import FRP.Yampa
+import FRP.BearRiver
 
-import FRP.Chimera.Agent.Agent
-import FRP.Chimera.Environment.Definitions
+import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Init
-import FRP.Chimera.Simulation.Internal
 import FRP.Chimera.Random.Pure
 
-type SimulationStepOut s e            = (Time, [AgentObservable s], e)
+type SimulationStepOut s e = (Time, [AgentObservable s], e)
 
--- TODO: must become a SF
-runEnv :: DTime -> SimulationParams e -> e -> (e, SimulationParams e)
-runEnv dt params e = maybe (e, params) (runEnvAux params e) mayEnvBeh
-  where
-    mayEnvBeh = simEnvBehaviour params
-
-    runEnvAux :: SimulationParams e -> e -> EnvironmentBehaviour e -> (e, SimulationParams e)
-    runEnvAux params e envBeh = (e', params')
-      where
-        (envBeh', e') = runAndFreezeSF envBeh e dt
-        params' = params { simEnvBehaviour = Just envBeh' }
+runEnv :: Monad m => SF m (SimulationParams e, e) (SimulationParams e, e)
+runEnv = proc (params, e) -> do
+  -- TODO: repair
+  {-
+  let mayEnvBeh = simEnvBehaviour params
+  maybe (e, params) (runEnvAux params e) mayEnvBeh
+  (envBeh', e') = runAndFreezeSF envBeh e dt
+  params' = params { simEnvBehaviour = Just envBeh' }
+  -}
+  returnA -< (params, e)
 
 shuffleAgents :: SimulationParams e 
-                -> [a] 
-                -> [b] 
-                -> (SimulationParams e, [a], [b])
+              -> [a] 
+              -> [b] 
+              -> (SimulationParams e, [a], [b])
 shuffleAgents params as bs 
     | doShuffle = (params', as', bs')
     | otherwise = (params, as, bs)
@@ -57,15 +55,15 @@ newAgentIn oldIn  =
   }
 
 observableAgents :: [AgentId] 
-                    -> [AgentOut s m e] 
-                    -> [AgentObservable s]
+                 -> [AgentOut m o d e] 
+                 -> [AgentObservable o]
 observableAgents ais aos = foldl observableAgents [] (zip ais aos)
   where
-    observableAgents :: [AgentObservable s] 
-                        -> (AgentId, AgentOut s m e) 
-                        -> [AgentObservable s] 
+    observableAgents :: [AgentObservable o] 
+                     -> (AgentId, AgentOut m o d e) 
+                     -> [AgentObservable o] 
     observableAgents acc (aid, ao) 
         | isJust mayObs = (aid, fromJust mayObs) : acc
         | otherwise = acc
       where
-        mayObs = aoState ao
+        mayObs = aoObservable ao

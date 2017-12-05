@@ -38,29 +38,29 @@ library
     FRP.Chimera.Agent.Reactive
     FRP.Chimera.Agent.Stream
     FRP.Chimera.Agent.Utils
-    FRP.Chimera.Environment.Definitions
-    FRP.Chimera.Environment.Spatial
-    FRP.Chimera.Environment.Discrete
-    FRP.Chimera.Environment.Continuous
-    FRP.Chimera.Environment.Network
-    FRP.Chimera.Environment.Utils
-    FRP.Chimera.Random.Monadic 
-    FRP.Chimera.Random.Pure
-    FRP.Chimera.Random.Reactive
-    FRP.Chimera.Rendering.Discrete2d
-    FRP.Chimera.Rendering.Continuous2d
-    FRP.Chimera.Rendering.Network
-    FRP.Chimera.Rendering.GlossSimulator
-    FRP.Chimera.Reactive.DataFlow
+    -- FRP.Chimera.Environment.Definitions
+    -- FRP.Chimera.Environment.Spatial
+    -- FRP.Chimera.Environment.Discrete
+    -- FRP.Chimera.Environment.Continuous
+    -- FRP.Chimera.Environment.Network
+    -- FRP.Chimera.Environment.Utils
+    -- FRP.Chimera.Random.Monadic 
+    -- FRP.Chimera.Random.Pure
+    -- FRP.Chimera.Random.Reactive
+    -- FRP.Chimera.Rendering.Discrete2d
+    -- FRP.Chimera.Rendering.Continuous2d
+    -- FRP.Chimera.Rendering.Network
+    -- FRP.Chimera.Rendering.GlossSimulator
+    -- FRP.Chimera.Reactive.DataFlow
     FRP.Chimera.Reactive.Transitions
-    FRP.Chimera.Simulation.Simulation
-    FRP.Chimera.Simulation.Common
-    FRP.Chimera.Simulation.Init
-    FRP.Chimera.Simulation.Replication
-    FRP.Chimera.Simulation.ParIteration      
-    FRP.Chimera.Simulation.SeqIteration 
-    FRP.Chimera.Simulation.Internal
-    FRP.Chimera.SD.Definitions
+    -- FRP.Chimera.Simulation.Simulation
+    -- FRP.Chimera.Simulation.Common
+    -- FRP.Chimera.Simulation.Init
+    -- FRP.Chimera.Simulation.Replication
+    -- FRP.Chimera.Simulation.ParIteration      
+    -- FRP.Chimera.Simulation.SeqIteration 
+    -- FRP.Chimera.Simulation.Internal
+    -- FRP.Chimera.SD.Definitions
 
 Test-Suite test
   default-language:
