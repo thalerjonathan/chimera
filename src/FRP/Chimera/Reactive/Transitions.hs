@@ -6,10 +6,10 @@ module FRP.Chimera.Reactive.Transitions
 
   , transitionAfter
   , transitionAfterExpSS
-
-    {-
   , transitionAfterExp
   , transitionWithUniProb
+
+  {-
   , transitionWithExpProb
   , transitionOnEvent
   , transitionOnBoolState
@@ -27,7 +27,8 @@ import FRP.BearRiver
 --import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Interface
 --import FRP.Chimera.Random.Monadic 
--- import FRP.Chimera.Random.Reactive
+import FRP.Chimera.Random.Reactive
+import FRP.Chimera.Reactive.Extensions 
 
 type EventSource m o d e = SF m (AgentIn o d e, e) (Event ())
 
@@ -48,65 +49,64 @@ transitionAfter t from to = switch (transitionAfterAux t from) (const to)
                        -> Agent m o d e 
                        -> AgentEventSF m o d e
     transitionAfterAux t from = proc aie -> do
-      aoe <- from -< aie
-      timeoutEvent <- after t () -< ()
-      returnA -< (aoe, timeoutEvent)
+      aoe <- from       -< aie
+      evt <- after t () -< ()
+      returnA -< (aoe, evt)
 
-transitionAfterExpSS :: Monad m 
+transitionAfterExpSS :: MonadRandom m 
                      => Double
                      -> Int
                      -> Agent m o d e
                      -> Agent m o d e
                      -> Agent m o d e
-transitionAfterExpSS t ss from to = switch (transitionAfterExpSSAux t from) (const to)
+transitionAfterExpSS t ss from to = switch (transitionAfterExpSSAux from) (const to)
   where
-    transitionAfterExpSSAux :: Monad m 
-                            => Double 
-                            -> Agent m o d e 
+    transitionAfterExpSSAux :: MonadRandom m 
+                            => Agent m o d e 
                             -> AgentEventSF m o d e
-    transitionAfterExpSSAux t from = proc aie -> do
-      e <- from -< aie
-      timeoutEvents <- superSamplingUniform ss (afterExp t ()) -< ()
-      let hasEvent = any isEvent timeoutEvents
-      let timeoutOccurred = if hasEvent then Event () else NoEvent
-      returnA -< (aoe, timeoutOccurred)
+    transitionAfterExpSSAux from = proc aie -> do
+      e     <- from                                     -< aie
+      evts  <- superSamplingUniform ss (afterExp t ())  -< ()
 
-afterExp :: MonadRandom m 
-         => Time 
-         -> SF m a (Event b)
-afterExp tAvg sf = undefined -- switch () 
+      let hasEvent  = any isEvent evts
+          evt       = if hasEvent 
+                        then Event () 
+                        else NoEvent
 
-{-
-transitionAfterExp :: RandomGen g => g 
-                   -> Double
+      returnA -< (e, evt)
+
+transitionAfterExp :: MonadRandom m 
+                   => Double
                    -> Agent m o d e
                    -> Agent m o d e
                    -> Agent m o d e
-transitionAfterExp g t from to = switch (transitionAfterExpAux t from) (const to)
+transitionAfterExp t from to = switch (transitionAfterExpAux from) (const to)
   where
-  transitionAfterExpAux :: Double 
-                        -> Agent m o d e 
-                        -> SF m (AgentIn o d e, e) (e, Event ())
-    transitionAfterExpAux t from = proc aie -> do
-    aoe <- from -< aie
-    timeoutEvent <- afterExp g t () -< ()
-    returnA -< (aoe, timeoutEvent)
+    transitionAfterExpAux :: MonadRandom m
+                          => Agent m o d e 
+                          -> AgentEventSF m o d e
+    transitionAfterExpAux from = proc aie -> do
+        e   <- from           -< aie
+        evt <- afterExp t ()  -< ()
+        returnA -< (e, evt)
 
-transitionWithUniProb :: RandomGen g => g 
-                      -> Double
+transitionWithUniProb :: MonadRandom m 
+                      => Double
                       -> Agent m o d e
                       -> Agent m o d e
                       -> Agent m o d e
-transitionWithUniProb g p from to = switch (transitionWithUniProbAux from)(const to)
+transitionWithUniProb p from to = switch (transitionWithUniProbAux from) (const to)
   where
-    transitionWithUniProbAux :: Agent m o d e
-                             -> SF (AgentIn o d e, e) (e, Event ())
+    transitionWithUniProbAux :: MonadRandom m 
+                             => Agent m o d e
+                             -> AgentEventSF m o d e
     transitionWithUniProbAux from = proc aie -> do
-      aie' <- from -< aie
-      evtFlag <- randomSF g -< randomBoolM p
-      evt <- iEdge False -< evtFlag
-      returnA -< (aie', evt)
+      e       <- from           -< aie
+      evtFlag <- randomBoolS p  -< ()
+      evt     <- edgeFrom False -< evtFlag
+      returnA -< (e, evt)
 
+            {-
 transitionWithExpProb :: RandomGen g => g 
                       -> Double
                       -> Double

@@ -103,6 +103,10 @@ module FRP.Chimera
   , dataFlowS
 
   -- FRP.Chimera.Reactive.Transitions
+  , superSamplingUniform
+  , afterExp
+
+  -- FRP.Chimera.Reactive.Transitions
   , EventSource
   
   , transitionAfter
@@ -124,8 +128,9 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
-
+import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
+
 {-
 import FRP.Chimera.Environment.Continuous
 import FRP.Chimera.Environment.Definitions
