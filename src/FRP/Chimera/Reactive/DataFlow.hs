@@ -7,14 +7,18 @@ module FRP.Chimera.Reactive.DataFlow
   , dataFlowOccasionally
   , dataFlowOccasionallySrc
   
+  {-
   , dataFlowOccasionallySS
   , dataFlowOccasionallySrcSS
+-}
 
   , constDataReceiverSource
   , constDataSource
+  {-
   , randomNeighbourNodeMsgSource
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
+  -}
   ) where
 
 import Data.Maybe
@@ -23,14 +27,15 @@ import Control.Monad.State
 import Control.Monad.Random
 import FRP.BearRiver
 
-import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Agent.Monad
+import FRP.Chimera.Agent.Stream
 import FRP.Chimera.Environment.Discrete
 import FRP.Chimera.Environment.Network
 import FRP.Chimera.Random.Monadic 
-import FRP.Chimera.Random.Reactive
+import FRP.Chimera.Random.Stream
 
-type DataSource m o d e = SF m (AgentIn o d e, e) (AgentData d)
+type DataSource m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (AgentData d)
 
 -- TODO: dataFlowRepeatedly
 -- TODO: dataFlowAfter
@@ -40,13 +45,13 @@ type DataSource m o d e = SF m (AgentIn o d e, e) (AgentData d)
 dataFlowOccasionally :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                      => Double
                      -> AgentData d
-                     -> SF m (AgentIn o d e, e) ()
+                     -> SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) ()
 dataFlowOccasionally rate d = dataFlowOccasionallySrc rate (constDataSource d)
 
 dataFlowOccasionallySrc :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                         => Double
                         -> DataSource m o d e 
-                        -> SF m (AgentIn o d e, e) ()
+                        -> SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) ()
 dataFlowOccasionallySrc rate dfSrc = proc (ain, e) -> do
   sendEvt <- occasionally rate () -< ()
   if isEvent sendEvt 
@@ -56,6 +61,7 @@ dataFlowOccasionallySrc rate dfSrc = proc (ain, e) -> do
       returnA         -< ())
     else returnA      -< ()
 
+    {-
 dataFlowOccasionallySS :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                        => Double
                        -> Int
@@ -79,6 +85,7 @@ dataFlowOccasionallySrcSS rate ss dfSrc = proc aie -> do
                                  -> m ()
     dataFlowOccasionallySrcSSAux (NoEvent, _) = return ()
     dataFlowOccasionallySrcSSAux (Event (), d) = dataFlowM d
+    -}
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -90,6 +97,7 @@ constDataReceiverSource d receiver = constant (receiver, d)
 constDataSource :: Monad m => AgentData d -> DataSource m o d e
 constDataSource = constant
 
+{-
 randomNeighbourNodeMsgSource :: MonadRandom m
                              => d
                              -> DataSource m o d (Network l)
@@ -119,4 +127,5 @@ randomAgentIdMsgSource d ignoreSelf = proc aie@(ain, agentIds) -> do
   if True == ignoreSelf && aid == randAid
     then randomAgentIdMsgSource (snd $ split g) m ignoreSelf -< aie
     else returnA -< (randAid, d)
+    -}
 -------------------------------------------------------------------------------

@@ -121,6 +121,8 @@ module FRP.Chimera
   , transitionOnData
   -- , transitionOnEventWithGuard
 
+  -- FRP.Chimera.Reactive.DataFlow
+
   -- FRP.Chimera.Random.Stream
   , randomBoolS
   , randomBoolS_
@@ -136,6 +138,7 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
+import FRP.Chimera.Reactive.DataFlow
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
 
@@ -155,7 +158,7 @@ import FRP.Chimera.Rendering.Continuous2d
 import FRP.Chimera.Rendering.Discrete2d
 import FRP.Chimera.Rendering.GlossSimulator
 import FRP.Chimera.Rendering.Network
-import FRP.Chimera.Reactive.DataFlow
+
 import FRP.Chimera.Reactive.Transitions
 import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 
