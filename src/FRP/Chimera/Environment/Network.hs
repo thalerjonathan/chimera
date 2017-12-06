@@ -35,6 +35,7 @@ import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree
 
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Random.Monadic 
 
 type EdgeLabeler l          = (AgentId -> AgentId -> l)
 data NetworkType            = Random RandomNetwork | Deterministic DeterministicNetwork
@@ -132,12 +133,10 @@ directLinkBetweenM n1 n2 = state (\e -> (directLinkBetween n1 n2 e, e))
 -------------------------------------------------------------------------------
 -- UTILITIES
 -------------------------------------------------------------------------------
-randomNeighbourNode :: RandomGen g => AgentId -> Network l -> Rand g AgentId
-randomNeighbourNode aid e = do
-  let nn = neighbourNodes aid e
-  let l = length nn 
-  randIdx <- getRandomR (0, l - 1)
-  return (nn !! randIdx)
+randomNeighbourNode :: MonadRandom m => AgentId -> Network l -> m AgentId
+randomNeighbourNode aid e = randomElemM nn
+  where
+    nn = neighbourNodes aid e
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

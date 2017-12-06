@@ -122,6 +122,20 @@ module FRP.Chimera
   -- , transitionOnEventWithGuard
 
   -- FRP.Chimera.Reactive.DataFlow
+  , DataSource
+  , DataFlowSF
+
+  , dataFlowOccasionally
+  , dataFlowOccasionallySrc
+  
+  , dataFlowOccasionallySS
+  , dataFlowOccasionallySrcSS
+
+  , constDataReceiverSource
+  , constDataSource
+  , randomNeighbourNodeMsgSource
+  , randomNeighbourCellMsgSource
+  , randomAgentIdMsgSource
 
   -- FRP.Chimera.Random.Stream
   , randomBoolS
@@ -138,11 +152,10 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
+import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.DataFlow
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
-
-import FRP.Chimera.Random.Stream
 
 {-
 import FRP.Chimera.Environment.Continuous

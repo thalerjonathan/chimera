@@ -58,7 +58,7 @@ module FRP.Chimera.Environment.Discrete
 
   , randomNeighbourCell
   , randomNeighbour
-
+  
   , occupied
   , unoccupy
   , occupy
@@ -76,11 +76,12 @@ import Control.Monad.Random
 import Control.Monad.Trans.State
 
 import FRP.Chimera.Environment.Spatial
+import FRP.Chimera.Random.Monadic 
 
-type Discrete2dDimension      = (Int, Int)
-type Discrete2dCoord          = Discrete2dDimension
-type Discrete2dNeighbourhood  = [Discrete2dCoord]
-type Discrete2dCell c         = (Discrete2dCoord, c)
+type Discrete2dDimension        = (Int, Int)
+type Discrete2dCoord            = Discrete2dDimension
+type Discrete2dNeighbourhood    = [Discrete2dCoord]
+type Discrete2dCell c           = (Discrete2dCoord, c)
 
 type SingleOccupantCell c       = Maybe c
 type SingleOccupantDiscrete2d c = Discrete2d (SingleOccupantCell c)
@@ -341,15 +342,22 @@ bottomRightDelta  = ( 1,  1)
 -------------------------------------------------------------------------------
 -- UTILITIES
 -------------------------------------------------------------------------------
-randomNeighbourCell :: RandomGen g => Discrete2dCoord -> Bool -> Discrete2d c -> Rand g c
-randomNeighbourCell pos ic e = randomNeighbour pos ic e >>= (\(_, c) -> return c)
+randomNeighbourCell :: MonadRandom m
+                    => Discrete2dCoord 
+                    -> Bool 
+                    -> Discrete2d c 
+                    -> m c
+randomNeighbourCell pos ic e = 
+  randomNeighbour pos ic e >>= (\(_, c) -> return c)
 
-randomNeighbour :: RandomGen g => Discrete2dCoord -> Bool -> Discrete2d c -> Rand g (Discrete2dCell c)
-randomNeighbour pos ic e = do
-  let ncc = neighbours pos ic e
-  let l = length ncc 
-  randIdx <- getRandomR (0, l - 1)
-  return (ncc !! randIdx)
+randomNeighbour :: MonadRandom m
+                => Discrete2dCoord 
+                -> Bool 
+                -> Discrete2d c 
+                -> m (Discrete2dCell c)
+randomNeighbour pos ic e = randomElemM ncc
+  where
+    ncc = neighbours pos ic e
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

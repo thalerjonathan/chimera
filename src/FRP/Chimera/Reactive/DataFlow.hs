@@ -3,25 +3,20 @@
 module FRP.Chimera.Reactive.DataFlow
   (
     DataSource
-  
+  , DataFlowSF
+
   , dataFlowOccasionally
   , dataFlowOccasionallySrc
   
-  {-
   , dataFlowOccasionallySS
   , dataFlowOccasionallySrcSS
--}
 
   , constDataReceiverSource
   , constDataSource
-  {-
   , randomNeighbourNodeMsgSource
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
-  -}
   ) where
-
-import Data.Maybe
     
 import Control.Monad.State
 import Control.Monad.Random
@@ -32,10 +27,11 @@ import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Stream
 import FRP.Chimera.Environment.Discrete
 import FRP.Chimera.Environment.Network
-import FRP.Chimera.Random.Monadic 
 import FRP.Chimera.Random.Stream
+import FRP.Chimera.Reactive.Extensions 
 
 type DataSource m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (AgentData d)
+type DataFlowSF m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) ()
 
 -- TODO: dataFlowRepeatedly
 -- TODO: dataFlowAfter
@@ -45,47 +41,45 @@ type DataSource m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (A
 dataFlowOccasionally :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                      => Double
                      -> AgentData d
-                     -> SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) ()
+                     -> DataFlowSF m o d e
 dataFlowOccasionally rate d = dataFlowOccasionallySrc rate (constDataSource d)
 
 dataFlowOccasionallySrc :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                         => Double
                         -> DataSource m o d e 
-                        -> SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) ()
+                        -> DataFlowSF m o d e
 dataFlowOccasionallySrc rate dfSrc = proc (ain, e) -> do
   sendEvt <- occasionally rate () -< ()
   if isEvent sendEvt 
     then (do
-      d <- dfSrc      -< (ain, e)
-      _ <- dataFlowS  -< d
-      returnA         -< ())
-    else returnA      -< ()
+      -- TODO: can we formulate this in point-free style?
+      d <-  dfSrc -< (ain, e)
+      dataFlowS   -< d)
+    else returnA  -< ()
 
-    {-
 dataFlowOccasionallySS :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                        => Double
                        -> Int
                        -> AgentData d
-                       -> SF m (AgentIn o d e, e) ()
+                       -> DataFlowSF m o d e
 dataFlowOccasionallySS rate ss d = dataFlowOccasionallySrcSS rate ss (constDataSource d)
 
 dataFlowOccasionallySrcSS :: (MonadRandom m, MonadState (AgentOut m o d e) m)
                           => Double
                           -> Int
                           -> DataSource m o d e 
-                          -> SF m (AgentIn o d e, e) ()
+                          -> DataFlowSF m o d e
 dataFlowOccasionallySrcSS rate ss dfSrc = proc aie -> do
-    sendEvtsSS <- superSamplingUniform ss (occasionally rate ())  -< ()
-    dfSS       <- superSamplingUniform ss dfSrc                   -< aie
-    _          <- arrM $ mapM dataFlowOccasionallySrcSSAux        -< (zip sendEvtsSS dfSS)
+    sendEvtsSS <- superSamplingUniform ss (occasionally rate ())    -< ()
+    dfSS       <- superSamplingUniform ss dfSrc                     -< aie
+    _          <- arrM $ mapM (lift . dataFlowOccasionallySrcSSAux) -< (zip sendEvtsSS dfSS)
     returnA -< ()
   where
-    dataFlowOccasionallySrcSSAux :: MonadState (AgentOut m o d e) m
+    dataFlowOccasionallySrcSSAux :: Monad m
                                  => (Event (), AgentData d)
-                                 -> m ()
-    dataFlowOccasionallySrcSSAux (NoEvent, _) = return ()
+                                 -> (StateT (AgentOut m o d e) m) ()
+    dataFlowOccasionallySrcSSAux (NoEvent,  _) = return ()
     dataFlowOccasionallySrcSSAux (Event (), d) = dataFlowM d
-    -}
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -97,13 +91,15 @@ constDataReceiverSource d receiver = constant (receiver, d)
 constDataSource :: Monad m => AgentData d -> DataSource m o d e
 constDataSource = constant
 
-{-
 randomNeighbourNodeMsgSource :: MonadRandom m
                              => d
                              -> DataSource m o d (Network l)
 randomNeighbourNodeMsgSource d = proc (ain, e) -> do
   let aid = agentId ain
-  randNode <- arrM (\(aid, e) -> randomNeighbourNode aid e) -< (aid, e)
+  -- TODO: can we formulate this in point-free style?
+  randNode <- arrM (\(aid, e) -> do
+    rn <- lift $ randomNeighbourNode aid e
+    return rn) -< (aid, e)
   returnA -< (randNode, d)
 
 -- NOTE: assumes state isJust
@@ -113,8 +109,14 @@ randomNeighbourCellMsgSource :: MonadRandom m
                              -> Bool 
                              -> DataSource m o d (Discrete2d AgentId)
 randomNeighbourCellMsgSource posFunc d ic = proc (_, e) -> do
-  let pos = posFunc $ fromJust $ agentObservable
-  randCell <- arrM (\(pos, e) -> randomNeighbourCell pos ic e) -< (pos, e)
+  -- TODO: can we formulate this in point-free style?
+  pos <- arrM_ (do
+    o <- lift $ agentObservableM    
+    return $ posFunc o) -< ()
+  -- TODO: can we formulate this in point-free style?
+  randCell <- arrM (\(pos, e) -> do
+    c <- lift $ randomNeighbourCell pos ic e
+    return c) -< (pos, e)
   returnA -< (randCell, d)
 
 randomAgentIdMsgSource :: MonadRandom m
@@ -123,9 +125,8 @@ randomAgentIdMsgSource :: MonadRandom m
                        -> DataSource m o d [AgentId]
 randomAgentIdMsgSource d ignoreSelf = proc aie@(ain, agentIds) -> do
   let aid = agentId ain
-  randAid <- drawRandomElemSF g -< agentIds
+  randAid <- randomElemS_ -< agentIds
   if True == ignoreSelf && aid == randAid
-    then randomAgentIdMsgSource (snd $ split g) m ignoreSelf -< aie
+    then randomAgentIdMsgSource d ignoreSelf -< aie
     else returnA -< (randAid, d)
-    -}
 -------------------------------------------------------------------------------
