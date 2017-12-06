@@ -38,7 +38,8 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Random.Monadic 
 
 type EdgeLabeler l          = (AgentId -> AgentId -> l)
-data NetworkType            = Random RandomNetwork | Deterministic DeterministicNetwork
+data NetworkType            = Random RandomNetwork 
+                            | Deterministic DeterministicNetwork
 data DeterministicNetwork   = Complete Int
 data RandomNetwork          = ErdosRenyi Int Double | BarbasiAlbert Int Int Int
 
@@ -57,26 +58,28 @@ data Network l = Network
 -------------------------------------------------------------------------------
 -- Network implementation
 -------------------------------------------------------------------------------
-createNetwork :: RandomGen g =>
-                NetworkType 
-                -> EdgeLabeler l
-                -> Rand g (Network l)
+createNetwork :: RandomGen g 
+              => NetworkType 
+              -> EdgeLabeler l
+              -> Rand g (Network l)
 createNetwork (Deterministic t) l = return $ createDeterministicNetwork t l
 createNetwork (Random t) l = createRandomNetwork t l
 
 createDeterministicNetwork :: DeterministicNetwork 
-                              -> EdgeLabeler l
-                              -> Network l
+                           -> EdgeLabeler l
+                           -> Network l
 createDeterministicNetwork (Complete n) l = Network { envNetGraph = gr }
   where
     gr = createCompleteGraph l n
 
-createRandomNetwork :: RandomGen g =>
-                      RandomNetwork 
-                      -> EdgeLabeler l
-                      -> Rand g (Network l)
-createRandomNetwork (ErdosRenyi n p) l = createErdosRenyiGraph l n p >>= (\gr -> return Network { envNetGraph = gr })
-createRandomNetwork (BarbasiAlbert m0 m n) l = createBarbasiAlbertGraph l n m0 m >>= (\gr -> return Network { envNetGraph = gr })
+createRandomNetwork :: RandomGen g
+                    => RandomNetwork 
+                    -> EdgeLabeler l
+                    -> Rand g (Network l)
+createRandomNetwork (ErdosRenyi n p) l = 
+  createErdosRenyiGraph l n p >>= (\gr -> return Network { envNetGraph = gr })
+createRandomNetwork (BarbasiAlbert m0 m n) l = 
+  createBarbasiAlbertGraph l n m0 m >>= (\gr -> return Network { envNetGraph = gr })
 
 createEmptyNetwork :: Network l
 createEmptyNetwork = Network { envNetGraph = empty }
@@ -171,7 +174,8 @@ createErdosRenyiGraph :: RandomGen g =>
                         -> Double 
                         -> Rand g (Gr () l)
 createErdosRenyiGraph l n p = do
-    let boundary = (0.0, 1.0) :: (Double, Double) -- sometimes the type-system of Haskell is f**** anyoing...
+    -- sometimes the type-system of Haskell is f**** anyoing...
+    let boundary = (0.0, 1.0) :: (Double, Double) 
 
     infRandomThreshs <- getRandomRs boundary
 

@@ -100,7 +100,175 @@ module FRP.Chimera
 
   -- FRP.Chimera.Agent.Stream
   , dataFlowS
+  , agentObservableS
 
+  -- FRP.Chimera.Environment.Continuous
+  , Continuous2dDimension
+  , Continuous2dCoord
+
+  , Continuous2d -- only export type-constructor 
+
+  , Continuous2dEmpty
+  , DistanceFunction
+
+  , createContinuous2d
+
+  , stepTo
+  , stepRandom
+
+  , distanceManhattanCont2d
+  , distanceEuclideanCont2d
+
+  , wrapCont2d
+  , wrapCont2dEnv
+
+  , multCoord
+  , addCoord
+  , subCoord
+  , vecFromCoords
+  , vecLen
+  , vecNorm
+  , dotCoords
+
+  , objectPresent
+  , objectCoord
+  , removeObject
+  , updateObject
+  , objectsInDistance
+
+  -- FRP.Chimera.Environment.Definitions
+  , Environment
+  , EnvironmentMonadic
+
+  , EnvironmentFolding
+
+  , environmentMonadic
+
+  -- FRP.Chimera.Environment.Discrete
+  , Discrete2dDimension
+  , Discrete2dCoord
+  , Discrete2dNeighbourhood
+  , Discrete2dCell
+
+  , Discrete2d -- only export type-constructor 
+
+  , SingleOccupantCell
+  , SingleOccupantDiscrete2d
+  , MultiOccupantCell
+  , MultiOccupantDiscrete2d
+
+  , createDiscrete2d
+
+  , dimensionsDisc2d
+  , dimensionsDisc2dM
+
+  , allCellsWithCoords
+  , updateCells
+  , updateCellsM
+  , updateCellsWithCoords
+  , updateCellsWithCoordsM
+  , updateCellAt
+  , changeCellAt
+  , changeCellAtM
+  , cellsAroundRadius
+  , cellsAroundRadiusM
+  , cellsAroundRect
+  , cellsAt
+  , cellAt
+  , cellAtM
+  , randomCell
+  , randomCellWithinRect
+  --, environmentDisc2dRandom
+
+  , neighbours
+  , neighboursM
+  , neighbourCells
+  , neighbourCellsM
+
+  , neighboursInNeumannDistance
+  , neighboursInNeumannDistanceM
+  , neighboursCellsInNeumannDistance
+  , neighboursCellsInNeumannDistanceM
+
+  , distanceManhattanDisc2d
+  , distanceEuclideanDisc2d
+  , neighbourhoodOf
+  , neighbourhoodScale
+  , wrapCells
+  , neumann
+  , moore
+  , wrapNeighbourhood
+  , wrapDisc2d
+  , wrapDisc2dEnv
+
+  , randomNeighbourCell
+  , randomNeighbour
+  
+  , occupied
+  , unoccupy
+  , occupy
+  , occupier
+  , addOccupant
+  , removeOccupant
+  , hasOccupiers
+  , occupiers
+
+  -- FRP.Chimera.Environment.Network
+  , NetworkType (..)
+  , DeterministicNetwork (..)
+  , RandomNetwork (..)
+  , Network (..)
+
+  , createNetwork
+  , createDeterministicNetwork
+  , createRandomNetwork
+  , createEmptyNetwork
+  , createNetworkWithGraph
+
+  , constEdgeLabeler
+  , unitEdgeLabeler
+
+  , nodesOfNetwork
+  , networkDegrees
+  , neighbourNodes
+  , neighbourEdges
+  , neighbourAgentIds
+  , neighbourAgentIdsM
+  , neighbourLinks
+  , directLinkBetween
+  , directLinkBetweenM
+
+  , randomNeighbourNode
+
+  -- FRP.Chimera.Environment.Spatial
+  , EnvironmentWrapping (..)
+
+  -- FRP.Chimera.Environment.Utils
+  , cont2dToDisc2d
+  , disc2dToCont2d
+
+  , cont2dTransDisc2d
+  , disc2dTransCont2d
+
+  -- FRP.Chimera.Random.Monadic
+  , randomBoolM
+  , randomExpM
+  , randomElemM
+  , avoidM
+
+  -- FRP.Chimera.Random.Pure
+  , fisherYatesShuffle
+
+  -- FRP.Chimera.Random.Stream
+  , randomBoolS
+  , randomBoolS_
+
+  , randomElemS
+  , randomElemS_
+
+  , randomExpS
+  , randomExpS_
+  
   -- FRP.Chimera.Reactive.Extensions
   , superSamplingUniform
   , afterExp
@@ -136,37 +304,29 @@ module FRP.Chimera
   , randomNeighbourNodeMsgSource
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
-
-  -- FRP.Chimera.Random.Stream
-  , randomBoolS
-  , randomBoolS_
-
-  , randomElemS
-  , randomElemS_
-
-  , randomExpS
-  , randomExpS_
   ) where
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
-import FRP.Chimera.Random.Stream
-import FRP.Chimera.Reactive.DataFlow
-import FRP.Chimera.Reactive.Extensions
-import FRP.Chimera.Reactive.Transitions
 
-{-
 import FRP.Chimera.Environment.Continuous
 import FRP.Chimera.Environment.Definitions
 import FRP.Chimera.Environment.Discrete
 import FRP.Chimera.Environment.Network
 import FRP.Chimera.Environment.Spatial
 import FRP.Chimera.Environment.Utils
-import FRP.Chimera.Random.Monadic 
-import FRP.Chimera.Random.Pure
 
+import FRP.Chimera.Random.Monadic
+import FRP.Chimera.Random.Pure
+import FRP.Chimera.Random.Stream
+
+import FRP.Chimera.Reactive.DataFlow
+import FRP.Chimera.Reactive.Extensions
+import FRP.Chimera.Reactive.Transitions
+
+{-
 import FRP.Chimera.Rendering.Continuous2d
 import FRP.Chimera.Rendering.Discrete2d
 import FRP.Chimera.Rendering.GlossSimulator

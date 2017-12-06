@@ -1,25 +1,25 @@
 {-# LANGUAGE Arrows #-}
 module FRP.Chimera.Environment.Definitions 
   (
-    EnvironmentBehaviour
-  , EnvironmentMonadicBehaviour
+    Environment
+  , EnvironmentMonadic
 
   , EnvironmentFolding
 
   , environmentMonadic
   ) where
 
-import Control.Monad.Trans.State
+import Control.Monad.State
 
-import FRP.Yampa
+import FRP.BearRiver
 
-type EnvironmentBehaviour e         = SF e e
-type EnvironmentFolding e           = ([e] -> e)
+type Environment m e                = SF (StateT e m) () ()
+type EnvironmentMonadic m e         = Double -> StateT e m ()
 
-type EnvironmentMonadicBehaviour e  = (Double -> State e ())
+type EnvironmentFolding e           = [e] -> e
 
-environmentMonadic :: EnvironmentMonadicBehaviour e -> EnvironmentBehaviour e
-environmentMonadic f = proc e -> do
-  t <- time -< ()
-  let (_, e') = runState (f t) e
-  returnA -< e'
+environmentMonadic :: Monad m => EnvironmentMonadic m e -> Environment m e
+environmentMonadic f = proc _ -> do
+  t   <- time             -< ()
+  _   <- arrM (lift . f)  -< t
+  returnA -< ()

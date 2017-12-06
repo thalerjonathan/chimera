@@ -34,19 +34,17 @@ library
     FRP.Chimera
     FRP.Chimera.Agent.Interface
     FRP.Chimera.Agent.Monad
-    FRP.Chimera.Agent.Random
     FRP.Chimera.Agent.Reactive
     FRP.Chimera.Agent.Stream
-    FRP.Chimera.Agent.Utils
-    -- FRP.Chimera.Environment.Definitions
-    -- FRP.Chimera.Environment.Spatial
-    -- FRP.Chimera.Environment.Discrete
-    -- FRP.Chimera.Environment.Continuous
-    -- FRP.Chimera.Environment.Network
-    -- FRP.Chimera.Environment.Utils
-    -- FRP.Chimera.Random.Monadic 
-    -- FRP.Chimera.Random.Pure
-    -- FRP.Chimera.Random.Reactive
+    FRP.Chimera.Environment.Definitions
+    FRP.Chimera.Environment.Spatial
+    FRP.Chimera.Environment.Discrete
+    FRP.Chimera.Environment.Continuous
+    FRP.Chimera.Environment.Network
+    FRP.Chimera.Environment.Utils
+    FRP.Chimera.Random.Monadic 
+    FRP.Chimera.Random.Pure
+    FRP.Chimera.Random.Stream
     -- FRP.Chimera.Rendering.Discrete2d
     -- FRP.Chimera.Rendering.Continuous2d
     -- FRP.Chimera.Rendering.Network
