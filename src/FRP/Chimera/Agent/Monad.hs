@@ -54,40 +54,40 @@ type AgentMonadicNoEnv m o d e     = Double -> AgentIn o d e -> State (AgentOut 
 -------------------------------------------------------------------------------
 createAgentM :: MonadState (AgentOut m o d e) m
              => AgentDef m o d e
-             -> m ()
+             -> StateT (AgentOut m o d e) m ()
 createAgentM newDef = state (\ao -> ((), createAgent newDef ao))
 
 killM :: MonadState (AgentOut m o d e) m
-      => m ()
+      => StateT (AgentOut m o d e) m ()
 killM = state (\ao -> ((), kill ao))
 
 isDeadM :: MonadState (AgentOut m o d e) m
-        => m Bool
+        => StateT (AgentOut m o d e) m Bool
 isDeadM = state (\ao -> (isDead ao, ao))
 
 -------------------------------------------------------------------------------
 -- MESSAGING / DATA-FLOW
 -------------------------------------------------------------------------------
-dataFlowM :: MonadState (AgentOut m o d e) m
+dataFlowM :: Monad m
           => AgentData d 
-          -> m ()
+          -> StateT (AgentOut m o d e) m ()
 dataFlowM df = state (\ao -> ((), dataFlow df ao))
 
-dataFlowToM :: MonadState (AgentOut m o d e) m
+dataFlowToM :: Monad m
             => AgentId
             -> d 
-            -> m ()
+            -> StateT (AgentOut m o d e) m ()
 dataFlowToM receiver d = state (\ao -> ((), dataFlowTo receiver d ao))
 
-dataFlowsM :: MonadState (AgentOut m o d e) m
+dataFlowsM :: Monad m
            => [AgentData d] 
-           -> m ()
+           -> StateT (AgentOut m o d e) m ()
 dataFlowsM dfs = state (\ao -> ((), dataFlows dfs ao))
 
-broadcastDataFlowM :: MonadState (AgentOut m o d e) m
+broadcastDataFlowM :: Monad m
                    => d 
                    -> [AgentId]
-                   -> m ()
+                   -> StateT (AgentOut m o d e) m ()
 broadcastDataFlowM d receiverIds = state (broadcastDataFlowMAux d)
   where
     broadcastDataFlowMAux :: d -> AgentOut m o d e -> ((), AgentOut m o d e)
@@ -116,19 +116,18 @@ onDataFlowM dfHdl ai acc = foldM dfHdl acc dfs
 -- OBSERVABLE STATE
 -------------------------------------------------------------------------------
 -- NOTE: assuming state isJust
-agentObservableM :: MonadState (AgentOut m o d e) m
-                 => m o
+agentObservableM :: Monad m => StateT (AgentOut m o d e) m o
 agentObservableM = state (\ao -> (agentObservable ao, ao))
 
-setAgentObservableM :: MonadState (AgentOut m o d e) m
+setAgentObservableM :: Monad m
                     => o 
-                    -> m ()
+                    -> StateT (AgentOut m o d e) m ()
 setAgentObservableM o = state (\ao -> ((), setAgentObservable o ao))
 
 -- NOTE: assuming state isJust
-updateAgentObservableM :: MonadState (AgentOut m o d e) m
+updateAgentObservableM :: Monad m
                        => (o -> o)
-                       -> m ()
+                       -> StateT (AgentOut m o d e) m ()
 updateAgentObservableM f = state (updateAgentObservableMAux f)
   where
     updateAgentObservableMAux :: (o -> o) 
@@ -137,9 +136,9 @@ updateAgentObservableM f = state (updateAgentObservableMAux f)
     updateAgentObservableMAux f ao = ((), updateAgentObservable f ao)
 
 -- NOTE: assuming state isJust
-agentObservableFieldM :: MonadState (AgentOut m o d e) m
+agentObservableFieldM :: Monad m
                       => (o -> t)
-                      -> m t
+                      -> StateT (AgentOut m o d e) m t
 agentObservableFieldM f = state (agentObservableFieldMAux f)
   where
     agentObservableFieldMAux :: (o -> t) 
@@ -152,14 +151,13 @@ agentObservableFieldM f = state (agentObservableFieldMAux f)
 -------------------------------------------------------------------------------
 -- CONVERSATIONS
 -------------------------------------------------------------------------------
-conversationM :: MonadState (AgentOut m o d e) m
+conversationM :: Monad m
               => AgentData d
               -> AgentConversationSender m o d e
-              -> m ()
+              -> StateT (AgentOut m o d e) m ()
 conversationM d replyHdl = state (\ao -> ((), conversation d replyHdl ao))
 
-conversationEndM :: MonadState (AgentOut m o d e) m
-                 => m ()
+conversationEndM :: Monad m => StateT (AgentOut m o d e) m ()
 conversationEndM = state (\ao -> ((), conversationEnd ao))
 
 {-
@@ -194,10 +192,10 @@ conversationIgnoreReplyMonadicRunner' replyAction ao e _ = (ao', e')
     (e', ao') = runState (replyAction e) ao
 -}
 
-bypassEnvironment :: MonadState (AgentOut m o d e) m 
-                  => m () 
+bypassEnvironment :: Monad m
+                  => StateT (AgentOut m o d e) m () 
                   -> e 
-                  -> m e
+                  -> StateT (AgentOut m o d e) m e
 bypassEnvironment a e = a >> return e
 
 -------------------------------------------------------------------------------
