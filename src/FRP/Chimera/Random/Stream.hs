@@ -1,5 +1,5 @@
 {-# LANGUAGE Arrows #-}
-module FRP.Chimera.Random.Reactive 
+module FRP.Chimera.Random.Stream 
   (
     randomBoolS
   , randomBoolS_

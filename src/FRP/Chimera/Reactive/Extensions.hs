@@ -9,7 +9,7 @@ import Control.Monad.Random
 import Control.Monad.Trans.MSF.Reader
 import FRP.BearRiver
 
-import FRP.Chimera.Random.Reactive 
+import FRP.Chimera.Random.Stream 
 
 -- | Performs uniform super sampling on the provided signal-function with n samples
 -- 

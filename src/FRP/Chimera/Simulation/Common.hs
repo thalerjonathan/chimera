@@ -17,7 +17,8 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Random.Pure
 
-type SimulationStepOut s e = (Time, [AgentObservable s], e)
+type AgentObservable o      = (AgentId, o)
+type SimulationStepOut s e  = (Time, [AgentObservable s], e)
 
 runEnv :: Monad m => SF m (SimulationParams e, e) (SimulationParams e, e)
 runEnv = proc (params, e) -> do

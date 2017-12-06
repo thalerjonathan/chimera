@@ -7,15 +7,15 @@ module FRP.Chimera.Reactive.Transitions
   , transitionAfter
   , transitionAfterExpSS
   , transitionAfterExp
-  , transitionWithUniProb
 
-  {-
+  , transitionWithUniProb
   , transitionWithExpProb
+
   , transitionOnEvent
-  , transitionOnBoolState
+
+  , transitionOnObservablePred
   , transitionOnData
-  , transitionOnEventWithGuard
-  -}
+  -- , transitionOnEventWithGuard
   ) where
 
 -- import Data.Maybe
@@ -26,16 +26,18 @@ import FRP.BearRiver
 
 --import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Agent.Stream
 --import FRP.Chimera.Random.Monadic 
-import FRP.Chimera.Random.Reactive
+import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.Extensions 
 
-type EventSource m o d e = SF m (AgentIn o d e, e) (Event ())
+type EventCont m o d e a          = a -> Agent m o d e
+type EventSource m o d e a        = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (Event a)
+-- only for internal use
+type TransitionEventSF m o d e a  = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (e, Event a)
 
 -- TODO: refactor some functionality into a general combinator e.g. all probability transitions
 
--- only for internal use
-type AgentEventSF m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) (e, Event ())
 
 transitionAfter :: Monad m 
                 => Double
@@ -47,7 +49,7 @@ transitionAfter t from to = switch (transitionAfterAux t from) (const to)
     transitionAfterAux :: Monad m 
                        => Double 
                        -> Agent m o d e 
-                       -> AgentEventSF m o d e
+                       -> TransitionEventSF m o d e ()
     transitionAfterAux t from = proc aie -> do
       aoe <- from       -< aie
       evt <- after t () -< ()
@@ -63,7 +65,7 @@ transitionAfterExpSS t ss from to = switch (transitionAfterExpSSAux from) (const
   where
     transitionAfterExpSSAux :: MonadRandom m 
                             => Agent m o d e 
-                            -> AgentEventSF m o d e
+                            -> TransitionEventSF m o d e ()
     transitionAfterExpSSAux from = proc aie -> do
       e     <- from                                     -< aie
       evts  <- superSamplingUniform ss (afterExp t ())  -< ()
@@ -84,10 +86,10 @@ transitionAfterExp t from to = switch (transitionAfterExpAux from) (const to)
   where
     transitionAfterExpAux :: MonadRandom m
                           => Agent m o d e 
-                          -> AgentEventSF m o d e
+                          -> TransitionEventSF m o d e ()
     transitionAfterExpAux from = proc aie -> do
-        e   <- from           -< aie
-        evt <- afterExp t ()  -< ()
+        e       <- from           -< aie
+        evt     <- afterExp t ()  -< ()
         returnA -< (e, evt)
 
 transitionWithUniProb :: MonadRandom m 
@@ -99,90 +101,101 @@ transitionWithUniProb p from to = switch (transitionWithUniProbAux from) (const 
   where
     transitionWithUniProbAux :: MonadRandom m 
                              => Agent m o d e
-                             -> AgentEventSF m o d e
+                             -> TransitionEventSF m o d e ()
     transitionWithUniProbAux from = proc aie -> do
       e       <- from           -< aie
       evtFlag <- randomBoolS p  -< ()
       evt     <- edgeFrom False -< evtFlag
       returnA -< (e, evt)
 
-            {-
-transitionWithExpProb :: RandomGen g => g 
+transitionWithExpProb :: MonadRandom m
+                      => Double
                       -> Double
-                      -> Double
                       -> Agent m o d e
                       -> Agent m o d e
                       -> Agent m o d e
-transitionWithExpProb g lambda p from to = switch (transitionWithExpProbAux from) (const to)
+transitionWithExpProb lambda p from to = switch (transitionWithExpProbAux from) (const to)
   where
-    transitionWithExpProbAux :: Agent m o d e
-                             -> SF (AgentIn o d e, e) (e, Event ())
+    transitionWithExpProbAux :: MonadRandom m  
+                             => Agent m o d e
+                             -> TransitionEventSF m o d e ()
     transitionWithExpProbAux from = proc aie -> do
-      aie' <- from -< aie
-      r <- randomSF g -< randomExpM lambda
-      evt <- iEdge False -< (p >= r)
-      returnA -< (aie', evt)
+      e       <- from               -< aie
+      r       <- randomExpS lambda  -< ()
+      evt     <- edgeFrom False     -< (p >= r)
+      returnA -< (e, evt)
 
-transitionOnEvent :: EventSource m o d e
+
+transitionOnEvent :: Monad m
+                  => EventSource m o d e a
                   -> Agent m o d e
+                  -> EventCont m o d e a
                   -> Agent m o d e
-                  -> Agent m o d e
-transitionOnEvent evtSrc from to = switch (transitionEventAux evtSrc from) (const to)
+transitionOnEvent evtSrc from to = switch (transitionEventAux evtSrc from) to
   where
-    transitionEventAux :: EventSource m o d e
+    transitionEventAux :: Monad m
+                       => EventSource m o d e a
                        -> Agent m o d e
-                       -> SF (AgentIn o d e, e) (e, Event ())
+                       -> TransitionEventSF m o d e a
     transitionEventAux evtSrc from = proc aie@(ain, _) -> do
-      (ao, e) <- from -< aie
-      evt <- evtSrc -< (ain, ao, e)
-      returnA -< ((ao, e), evt)
+      e       <- from     -< aie
+      evt     <- evtSrc   -< (ain, e)
+      returnA -< (e, evt)
+
+type ObservablePredicate o = o -> Bool
 
 -- NOTE: assumes state isJust
-transitionOnBoolState :: (s -> Bool)
-                      -> Agent m o d e
-                      -> Agent m o d e
-                      -> Agent m o d e
-transitionOnBoolState boolStateFunc from to = switch (transitionOnBoolStateAux boolStateFunc from) (const to)
+transitionOnObservablePred :: Monad m
+                           => ObservablePredicate o
+                           -> Agent m o d e
+                           -> Agent m o d e
+                           -> Agent m o d e
+transitionOnObservablePred pred from to = 
+    switch (transitionOnObservablePredAux pred from) (const to)
   where
-    transitionOnBoolStateAux :: (s -> Bool)
-                             -> Agent m o d e
-                             -> SF (AgentIn o d e, e) (e, Event ())
-    transitionOnBoolStateAux boolStateFunc from = proc aie -> do
-      (ao, e) <- from -< aie
-      let state = fromJust $ aoState ao
-      let evtFlag = boolStateFunc state
-      evt <- iEdge False -< evtFlag
-      returnA -< ((ao, e), evt)
+    transitionOnObservablePredAux :: Monad m
+                                  => ObservablePredicate o
+                                  -> Agent m o d e
+                                  -> TransitionEventSF m o d e ()
+    transitionOnObservablePredAux pred from = proc aie -> do
+      e       <- from             -< aie
+      obs     <- agentObservableS -< ()
+      evt     <- edgeFrom False   -< pred obs
+      returnA -< (e, evt)
 
-transitionOnData :: Eq d => d 
+transitionOnData :: (Monad m, Eq d)
+                 => d 
                  -> Agent m o d e
-                 -> Agent m o d e
+                 -> EventCont m o d e ()
                  -> Agent m o d e
 transitionOnData d from to = transitionOnEvent (dataEventSource d) from to
 
+-- NOTE: for now this is not implemented as it can be implemented in an
+-- event-source with an agent running in a monad-stack containing a MonadRandom
+{-
 transitionOnEventWithGuard :: (MonadRandom m, RandomGen g)
                            => EventSource m o d e
                            -> Rand g Bool
                            -> Agent m o d e
-                           -> Agent m o d e
+                           ->  EventCont m o d e a
                            -> Agent m o d e
 transitionOnEventWithGuard evtSrc guardAction from to = 
     switch (transitionEventWithGuardAux evtSrc from) (const to)
   where
     transitionEventWithGuardAux :: MonadRandom m
-                => EventSource m o d e
-                -> Agent m o d e 
-                -> SF m (AgentIn o d e, e) (e, Event ())
+                                => EventSource m o d e a
+                                -> Agent m o d e 
+                                -> TransitionEventSF m o d e a
     transitionEventWithGuardAux evtSrc from = proc aie@(ain, _) -> do
-      e <- from -< aie
-      evt <- evtSrc -< (ain, e)
-      flag <- arrM_ (lift $ guardAction) -< ()
+      e     <- from                       -< aie
+      evt   <- evtSrc                     -< (ain, e)
+      flag  <- arrM_ (lift $ guardAction) -< ()
       returnA -< if (isEvent evt && flag)
                   then (e, Event())
                   else (e, NoEvent)
+-}
 
-dataEventSource :: (Eq d, Monad m) => d -> EventSource m o d e
+dataEventSource :: (Eq d, Monad m) => d -> EventSource m o d e ()
 dataEventSource d = proc (ain, _) -> do
   evt <- edgeFrom False -< hasDataFlow d ain
   returnA -< evt
-  -}

@@ -4,7 +4,6 @@ module FRP.Chimera
     AgentId
   , AgentData
   , DataFilter
-  , AgentObservable
 
   , Agent
   , AgentRandom
@@ -102,7 +101,7 @@ module FRP.Chimera
   -- FRP.Chimera.Agent.Stream
   , dataFlowS
 
-  -- FRP.Chimera.Reactive.Transitions
+  -- FRP.Chimera.Reactive.Extensions
   , superSamplingUniform
   , afterExp
 
@@ -111,17 +110,26 @@ module FRP.Chimera
   
   , transitionAfter
   , transitionAfterExpSS
-  
-  {-
-  
   , transitionAfterExp
+
   , transitionWithUniProb
   , transitionWithExpProb
+
   , transitionOnEvent
-  , transitionOnBoolState
+
+  , transitionOnObservablePred
   , transitionOnData
-  , transitionOnEventWithGuard
-  -}
+  -- , transitionOnEventWithGuard
+
+  -- FRP.Chimera.Random.Stream
+  , randomBoolS
+  , randomBoolS_
+
+  , randomElemS
+  , randomElemS_
+
+  , randomExpS
+  , randomExpS_
   ) where
 
 import FRP.Chimera.Agent.Interface
@@ -130,6 +138,8 @@ import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
+
+import FRP.Chimera.Random.Stream
 
 {-
 import FRP.Chimera.Environment.Continuous
@@ -140,7 +150,7 @@ import FRP.Chimera.Environment.Spatial
 import FRP.Chimera.Environment.Utils
 import FRP.Chimera.Random.Monadic 
 import FRP.Chimera.Random.Pure
-import FRP.Chimera.Random.Reactive
+
 import FRP.Chimera.Rendering.Continuous2d
 import FRP.Chimera.Rendering.Discrete2d
 import FRP.Chimera.Rendering.GlossSimulator

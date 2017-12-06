@@ -4,7 +4,6 @@ module FRP.Chimera.Agent.Interface
     AgentId
   , AgentData
   , DataFilter
-  , AgentObservable
 
   , Agent
   , AgentRandom
@@ -77,7 +76,6 @@ import FRP.Chimera.Simulation.Internal
 type AgentId              = Int
 type AgentData d          = (AgentId, d)
 type DataFilter d         = AgentData d -> Bool
-type AgentObservable o    = (AgentId, o)
 
 type Agent m o d e        = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) e
 type AgentRandom o d e g  = Agent (Rand g) o d e 
@@ -109,7 +107,7 @@ data AgentIn o d e = AgentIn
   , aiData                  :: ![AgentData d]     -- AgentId identifies sender
   , aiConversationIncoming  :: !(Event (AgentData d))
   , aiStart                 :: !(Event ())
-  , aiRec                   :: !(Event [(AgentObservable o, e)])
+  , aiRec                   :: !(Event [(Maybe o, e)])
   , aiRecInitAllowed        :: !Bool
   , aiIdGen                 :: !(TVar Int)
   }
@@ -257,7 +255,7 @@ conversationEnd ao = ao { aoConversationRequest = NoEvent }
 -------------------------------------------------------------------------------
 -- RECURSION
 -------------------------------------------------------------------------------
-agentRecursions :: AgentIn o d e -> Event [(AgentObservable o, e)]
+agentRecursions :: AgentIn o d e -> Event [(Maybe o, e)]
 agentRecursions = aiRec
 
 recInitAllowed :: AgentIn o d e -> Bool
