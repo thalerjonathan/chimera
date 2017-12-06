@@ -14,15 +14,15 @@ import Data.Maybe
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Random.Pure
+import FRP.Chimera.Simulation.Init
 
 type AgentObservable o      = (AgentId, o)
 type SimulationStepOut s e  = (Time, [AgentObservable s], e)
 
-runEnv :: Monad m => SF m (SimulationParams e, e) (SimulationParams e, e)
+runEnv :: Monad m => SF m (SimulationParams m e, e) (SimulationParams m e, e)
 runEnv = proc (params, e) -> do
-  -- TODO: repair
+  -- TODO: fix
   {-
   let mayEnvBeh = simEnvBehaviour params
   maybe (e, params) (runEnvAux params e) mayEnvBeh
@@ -31,10 +31,11 @@ runEnv = proc (params, e) -> do
   -}
   returnA -< (params, e)
 
-shuffleAgents :: SimulationParams e 
+shuffleAgents :: Monad m
+              => SimulationParams m e 
               -> [a] 
               -> [b] 
-              -> (SimulationParams e, [a], [b])
+              -> (SimulationParams m e, [a], [b])
 shuffleAgents params as bs 
     | doShuffle = (params', as', bs')
     | otherwise = (params, as, bs)
@@ -48,7 +49,7 @@ shuffleAgents params as bs
     params' = params { simRng = g' }
     (as', bs') = unzip shuffledSfsIns
 
-newAgentIn :: AgentIn s m e -> AgentIn s m e
+newAgentIn :: AgentIn o d e -> AgentIn o d e
 newAgentIn oldIn  = 
   oldIn { 
     aiStart = NoEvent

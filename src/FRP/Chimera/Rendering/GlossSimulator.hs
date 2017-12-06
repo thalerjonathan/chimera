@@ -9,14 +9,14 @@ module FRP.Chimera.Rendering.GlossSimulator
   , simulateAndRender
   , simulateStepsAndRender
   
-  , debugAndRender
+  -- , debugAndRender
   ) where
 
 import Control.Concurrent
 import Control.Monad
 import Data.IORef
 
-import FRP.Yampa
+import FRP.BearRiver
 import qualified Graphics.Gloss as GLO
 import Graphics.Gloss.Interface.IO.Animate
 import Graphics.Gloss.Interface.IO.Simulate
@@ -26,21 +26,30 @@ import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Simulation
 
-type RenderFrame s e          = (Int, Int) -> Time -> [AgentObservable s] -> e -> GLO.Picture
-type StepCallback s e         = SimulationStepOut s e -> SimulationStepOut s e -> IO ()
+type RenderFrame s e          = (Int, Int) 
+                              -> Time 
+                              -> [AgentObservable s] 
+                              -> e 
+                              -> GLO.Picture
+type StepCallback s e         = SimulationStepOut s e 
+                              -> SimulationStepOut s e 
+                              -> IO ()
 
-type RenderFrameInternal s e  = Time -> [AgentObservable s] -> e -> GLO.Picture
+type RenderFrameInternal s e  = Time 
+                              -> [AgentObservable s] 
+                              -> e 
+                              -> GLO.Picture
 
 simulateAndRender :: [AgentDef s m e] 
-                    -> e 
-                    -> SimulationParams e
-                    -> Double
-                    -> Int
-                    -> String
-                    -> (Int, Int)
-                    -> RenderFrame s e
-                    -> Maybe (StepCallback s e)
-                    -> IO ()
+                  -> e 
+                  -> SimulationParams e
+                  -> Double
+                  -> Int
+                  -> String
+                  -> (Int, Int)
+                  -> RenderFrame s e
+                  -> Maybe (StepCallback s e)
+                  -> IO ()
 simulateAndRender initAdefs 
             e 
             params 
@@ -72,14 +81,14 @@ simulateAndRender initAdefs
     initEmptyAgentObs = []
 
 simulateStepsAndRender :: [AgentDef s m e] 
-                          -> e  
-                          -> SimulationParams e
-                          -> DTime
-                          -> Time
-                          -> String
-                          -> (Int, Int)
-                          -> RenderFrame s e
-                          -> IO ()
+                       -> e  
+                       -> SimulationParams e
+                       -> DTime
+                       -> Time
+                       -> String
+                       -> (Int, Int)
+                       -> RenderFrame s e
+                       -> IO ()
 simulateStepsAndRender initAdefs 
                e 
                params 
@@ -95,17 +104,17 @@ simulateStepsAndRender initAdefs
       GLO.black
       pic
 
-debugAndRender :: forall s e m .
-                (Show s, Read s, Show e, Read e)
-                => [AgentDef s m e] 
-                -> e 
-                -> SimulationParams e
-                -> DTime
-                -> Int
-                -> String
-                -> (Int, Int)
-                -> RenderFrame s e
-                -> IO ()
+      {-
+debugAndRender :: forall s e m . (Show s, Read s, Show e, Read e)
+               => [AgentDef s m e] 
+               -> e 
+               -> SimulationParams e
+               -> DTime
+               -> Int
+               -> String
+               -> (Int, Int)
+               -> RenderFrame s e
+               -> IO ()
 debugAndRender initAdefs 
                   e 
                   params 
@@ -144,13 +153,14 @@ debugAndRender initAdefs
             (do
                 pic <- modelToPicture (renderFunc winSize) out
                 writeIORef renderOutputRef pic) >> return False
-                  
+-}
+
 nextIteration :: Maybe (StepCallback s e)
-                -> IORef (SimulationStepOut s e)
-                -> ReactHandle () (SimulationStepOut s e)
-                -> Bool
-                -> SimulationStepOut s e
-                -> IO Bool
+              -> IORef (SimulationStepOut s e)
+              -> ReactHandle () (SimulationStepOut s e)
+              -> Bool
+              -> SimulationStepOut s e
+              -> IO Bool
 nextIteration (Just clbk) obsRef _ _ curr = do
   prev <- readIORef obsRef
   clbk prev curr
@@ -159,31 +169,31 @@ nextIteration (Just clbk) obsRef _ _ curr = do
 nextIteration Nothing obsRef _ _ curr = writeIORef obsRef curr >> return False
 
 nextFrameSimulateWithTime :: Double 
-                            -> ReactHandle () (SimulationStepOut s e)
-                            -> IORef (SimulationStepOut s e)
-                            -> ViewPort
-                            -> Float
-                            -> (SimulationStepOut s e)
-                            -> IO (SimulationStepOut s e)
+                          -> ReactHandle () (SimulationStepOut s e)
+                          -> IORef (SimulationStepOut s e)
+                          -> ViewPort
+                          -> Float
+                          -> (SimulationStepOut s e)
+                          -> IO (SimulationStepOut s e)
 nextFrameSimulateWithTime dt hdl obsRef _ _ _ = do
   _ <- react hdl (dt, Nothing)  -- NOTE: will result in call to nextIteration
   aobs <- readIORef obsRef
   return aobs
 
 nextFrameSimulateNoTime :: RenderFrameInternal s e
-                            -> Double
-                            -> ReactHandle () (SimulationStepOut s e)
-                            -> IORef (SimulationStepOut s e)
-                            -> Float
-                            -> IO Picture
+                        -> Double
+                        -> ReactHandle () (SimulationStepOut s e)
+                        -> IORef (SimulationStepOut s e)
+                        -> Float
+                        -> IO Picture
 nextFrameSimulateNoTime renderFunc dt hdl obsRef _ = do
   _ <- react hdl (dt, Nothing)  -- NOTE: will result in call to nextIteration
   aobs <- readIORef obsRef
   modelToPicture renderFunc aobs
 
 modelToPicture :: RenderFrameInternal s e
-          -> (SimulationStepOut s e) 
-          -> IO GLO.Picture
+               -> (SimulationStepOut s e) 
+               -> IO GLO.Picture
 modelToPicture renderFunc (t, aobs, e) = return $ renderFunc t aobs e
 
 displayGlossWindow :: String -> (Int, Int) -> GLO.Display

@@ -9,7 +9,7 @@ module FRP.Chimera.Rendering.Network
   , defaultAgentColorerNetwork
   ) where
 
-import FRP.Yampa
+import FRP.BearRiver
 import qualified Graphics.Gloss as GLO
 
 import FRP.Chimera.Agent.Agent
@@ -28,7 +28,8 @@ type AgentColorerNetwork s      = s -> GLO.Color
 
 renderFrameNetwork :: AgentRendererNetwork s l
                       -> RenderFrame s (Network l)
-renderFrameNetwork _ar _winSize@(_wx, _wy) _t _ss _e = GLO.Pictures [envPics, agentPics]
+renderFrameNetwork _ar _winSize@(_wx, _wy) _t _ss _e = 
+    GLO.Pictures [envPics, agentPics]
   where
     agentPics = GLO.Blank
     envPics = GLO.Blank

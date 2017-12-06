@@ -19,7 +19,7 @@ module FRP.Chimera.Rendering.Discrete2d
   , transformToWindow
   ) where
 
-import FRP.Yampa
+import FRP.BearRiver
 import qualified Graphics.Gloss as GLO
 
 import FRP.Chimera.Agent.Agent
@@ -34,13 +34,18 @@ type AgentRendererDisc2d s      = (Float, Float)
 type AgentCellColorerDisc2d s   = s -> GLO.Color
 type AgentCoordDisc2d s         = (s -> Discrete2dCoord)
 
-type EnvRendererDisc2d c        = (Float, Float) -> (Int, Int) -> Time -> (Discrete2dCoord, c) -> GLO.Picture
+type EnvRendererDisc2d c        = (Float, Float) 
+                                -> (Int, Int)
+                                -> Time 
+                                -> (Discrete2dCoord, c) 
+                                -> GLO.Picture
 type EnvCellColorerDisc2d c     = c -> GLO.Color
 
 renderFrameDisc2d :: AgentRendererDisc2d s
-                    -> EnvRendererDisc2d c
-                    -> RenderFrame s (Discrete2d c)
-renderFrameDisc2d ar er wSize@(wx, wy) t ss e = GLO.Pictures (envPics ++ agentPics)
+                  -> EnvRendererDisc2d c
+                  -> RenderFrame s (Discrete2d c)
+renderFrameDisc2d ar er wSize@(wx, wy) t ss e =
+    GLO.Pictures (envPics ++ agentPics)
   where
     (cx, cy) = envDisc2dDims e
     cellWidth = fromIntegral wx / fromIntegral cx
@@ -49,7 +54,8 @@ renderFrameDisc2d ar er wSize@(wx, wy) t ss e = GLO.Pictures (envPics ++ agentPi
     cells = allCellsWithCoords e
 
     agentPics = map (ar (cellWidth, cellHeight) wSize t) ss
-    envPics = map (er (cellWidth, cellHeight) wSize t) cells -- TODO: is this expensive when we are doing void-rendering? should we use a maybe?
+    -- TODO: is this expensive when we are doing void-rendering? should we use a maybe?
+    envPics = map (er (cellWidth, cellHeight) wSize t) cells 
 
 defaultEnvRendererDisc2d :: EnvCellColorerDisc2d c -> EnvRendererDisc2d c
 defaultEnvRendererDisc2d cc r@(rw, rh) w _t (coord, cell) = cellRect
@@ -67,7 +73,8 @@ defaultEnvColorerDisc2d color _ = color
 defaultAgentRendererDisc2d :: AgentCellColorerDisc2d s 
                               -> AgentCoordDisc2d s 
                               -> AgentRendererDisc2d s
-defaultAgentRendererDisc2d acf apf r@(rw, _) w _t (_, s) = GLO.color color $ GLO.translate x y $ GLO.ThickCircle 0 rw
+defaultAgentRendererDisc2d acf apf r@(rw, _) w _t (_, s) = 
+    GLO.color color $ GLO.translate x y $ GLO.ThickCircle 0 rw
   where
     coord = apf s
     color = acf s

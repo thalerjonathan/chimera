@@ -304,6 +304,89 @@ module FRP.Chimera
   , randomNeighbourNodeMsgSource
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
+
+  -- FRP.Chimera.Rendering.Continuous2d
+  , AgentRendererCont2d
+  , AgentColorerCont2d
+  , AgentCoordCont2d
+  , EnvRendererCont2d
+
+  , renderFrameCont2d
+
+  , defaultEnvRendererCont2d
+  , voidEnvRendererCont2d
+
+  , defaultAgentRendererCont2d
+  , defaultAgentColorerCont2d
+  , voidAgentRendererCont2d
+
+  -- FRP.Chimera.Rendering.Discrete2d
+  , AgentRendererDisc2d
+  , AgentCellColorerDisc2d
+  , AgentCoordDisc2d
+  , EnvRendererDisc2d
+  , EnvCellColorerDisc2d
+
+  , renderFrameDisc2d
+
+  , defaultEnvRendererDisc2d
+  , defaultEnvColorerDisc2d
+  , voidEnvRendererDisc2d
+
+  , defaultAgentRendererDisc2d
+  , defaultAgentColorerDisc2d
+  , voidAgentRendererDisc2d
+
+  , transformToWindow
+
+  -- FRP.Chimera.Rendering.GlossSimulator
+  , StepCallback
+  , RenderFrame
+
+  , simulateAndRender
+  , simulateStepsAndRender
+  
+  --, debugAndRender
+
+  -- FRP.Chimera.Rendering.Network
+  , AgentRendererNetwork
+  , AgentColorerNetwork
+
+  , renderFrameNetwork
+
+  , defaultAgentRendererNetwork
+  , defaultAgentColorerNetwork
+
+  -- FRP.Chimera.SD.Definitions
+  , StockId
+  , FlowId
+
+  , Stock
+  , Flow
+  , SDObservable
+  , SDDef
+
+  , runSD
+
+  , createStock
+  , createFlow
+
+  , flowInFrom
+  , stockInFrom
+  , flowOutTo
+  , stockOutTo
+
+  -- FRP.Chimera.Simulation.Init 
+  , SimulationParams (..)
+  , UpdateStrategy (..)
+
+  , initRng
+  , initSimulation
+  , initSimNoEnv
+  , newAgentId
+
+  -- FRP.Chimera.Simulation.Replication   
+  -- FRP.Chimera.Simulation.Simulation
   ) where
 
 import FRP.Chimera.Agent.Interface
@@ -326,18 +409,20 @@ import FRP.Chimera.Reactive.DataFlow
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
 
-{-
 import FRP.Chimera.Rendering.Continuous2d
 import FRP.Chimera.Rendering.Discrete2d
 import FRP.Chimera.Rendering.GlossSimulator
 import FRP.Chimera.Rendering.Network
 
-import FRP.Chimera.Reactive.Transitions
 import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 
 import FRP.Chimera.Simulation.Replication   
 import FRP.Chimera.Simulation.Simulation
--}
+
+import FRP.Chimera.SD.Definitions
+import FRP.Chimera.Simulation.Init 
+--import FRP.Chimera.Simulation.Replication   
+--import FRP.Chimera.Simulation.Simulation
 
 {-
 ------------------------------------------------------------------------------------------------------------------------
