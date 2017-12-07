@@ -21,7 +21,8 @@ module FRP.Chimera.Reactive.Transitions
 -- import Data.Maybe
 
 import Control.Monad.Random
-import Control.Monad.State
+--import Control.Monad.State
+import Control.Monad.State.Strict
 import FRP.BearRiver
 
 --import FRP.Chimera.Agent.Monad

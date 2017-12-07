@@ -6,7 +6,8 @@ module FRP.Chimera.Agent.Stream
   , agentObservableS
   ) where
 
-import Control.Monad.State
+--import Control.Monad.State
+import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface

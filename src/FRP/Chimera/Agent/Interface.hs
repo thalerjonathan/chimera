@@ -68,7 +68,8 @@ import Data.Maybe
 
 import Control.Concurrent.STM.TVar
 import Control.Monad.Random
-import Control.Monad.State
+--import Control.Monad.State
+import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Simulation.Internal

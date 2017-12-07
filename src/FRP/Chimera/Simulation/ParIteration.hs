@@ -8,8 +8,8 @@ module FRP.Chimera.Simulation.ParIteration
 --import Data.Maybe
 
 --import Control.Concurrent.STM.TVar
-import Control.Monad.State
 import Control.Monad.Trans.MSF.Reader
+import Control.Monad.Trans.MSF.State
 --import Control.Parallel.Strategies
 --import qualified Data.Map as Map
 import FRP.BearRiver
@@ -83,30 +83,49 @@ runAgents :: Monad m
               ([Agent m o d e], [AgentIn o d e], e) 
               ([Agent m o d e], [AgentOut m o d e], [e])
 runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
-    let asIns = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
-    as <- mapMSF (runReaderS runAgent) -< asIns
-    returnA -< unzip3 as
+    let asIns           = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
+    
+    arets <- mapMSF (runReaderS runAgent) -< asIns
+    
+    let (aos, aEsSfs)   = unzip arets
+        (es,  sfs')      = unzip aEsSfs
+
+    returnA -< (sfs', aos, es)
 
   where
     runAgent :: Monad m 
              => SF m 
                   (Agent m o d e, AgentIn o d e, e)
-                  (Agent m o d e, AgentOut m o d e, e)
-    runAgent = arrM (\(sf, ain, e) -> do 
+                  (AgentOut m o d e, (e, Agent m o d e))
+    runAgent = runStateSF_ runAgentAux agentOut
+      where
+        runAgentAux :: Monad m
+                    => SF (StateT (AgentOut m o d e) m) 
+                        (Agent m o d e, AgentIn o d e, e) 
+                        (e, Agent m o d e)
+        runAgentAux = arrM (\(sf, ain, e) -> unMSF sf (ain, e))
+
+commute :: Monad m => ReaderT r (StateT s m) a -> StateT s (ReaderT r m) a
+commute = undefined
+
+runStateSF_ :: Monad m => SF (StateT s m) a b -> s -> SF m a (s, b)
+runStateSF_ sf = runStateS_ $ liftMSFPurer commute sf
+
+          {-
+
+          arrM (\(sf, ain, e) -> do 
         let afunc = runAgentAux (sf, ain, e)
         let ret = runStateT agentOut afunc
         retMon <- ret
         _
         undefined)
-      where
+
         runAgentAux :: Monad m
                     => (Agent m o d e, AgentIn o d e, e)
                     -> ReaderT Double (StateT (AgentOut m o d e) m) (Agent m o d e, e)
         runAgentAux (sf, ain, e) = do
           (e', sf') <- unMSF sf (ain, e)
           return (sf', e')
-         
-          {-
 
    a <- ma
    return $ f a
