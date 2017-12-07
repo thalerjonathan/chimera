@@ -99,10 +99,32 @@ runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
                     -> ReaderT Double m (Agent m o d e, AgentOut m o d e, e)
         runAgentAux (sf, ain, e) = do
           stateMon <- unMSF sf (ain, e)
-          let ret = runStateT stateMon agentOut
-          let ((e', sf'), ao) = ret
-          return (sf', ao, e')
-      {-
+          _
+          --ret <- runStateT stateMon agentOut
+          --let ((e', sf'), ao) = ret
+          --return (sf', ao, e')
+          undefined
+      
+      
+      
+      
+      
+          {-
+
+   a <- ma
+   return $ f a
+  
+   f <$> ma
+
+   f : a -> b -> c 
+   
+   f <$> ma <*> mb 
+   
+   liftM
+   liftM2
+
+
+
 foldEnvironments :: Double 
                  -> SimulationParams e 
                  -> [e] 

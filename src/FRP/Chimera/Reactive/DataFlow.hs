@@ -109,10 +109,7 @@ randomNeighbourCellMsgSource :: MonadRandom m
                              -> Bool 
                              -> DataSource m o d (Discrete2d AgentId)
 randomNeighbourCellMsgSource posFunc d ic = proc (_, e) -> do
-  -- TODO: can we formulate this in point-free style?
-  pos <- arrM_ (do
-    o <- lift $ agentObservableM    
-    return $ posFunc o) -< ()
+  pos <- arrM_ (posFunc <$> lift agentObservableM) -< ()
   -- TODO: can we formulate this in point-free style?
   randCell <- arrM (\(pos, e) -> do
     c <- lift $ randomNeighbourCell pos ic e
@@ -126,7 +123,7 @@ randomAgentIdMsgSource :: MonadRandom m
 randomAgentIdMsgSource d ignoreSelf = proc aie@(ain, agentIds) -> do
   let aid = agentId ain
   randAid <- randomElemS_ -< agentIds
-  if True == ignoreSelf && aid == randAid
+  if ignoreSelf && aid == randAid
     then randomAgentIdMsgSource d ignoreSelf -< aie
     else returnA -< (randAid, d)
 -------------------------------------------------------------------------------

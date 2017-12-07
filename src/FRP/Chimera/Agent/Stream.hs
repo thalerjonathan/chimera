@@ -17,6 +17,4 @@ dataFlowS = arrM (lift . dataFlowM)
 
 -- NOTE: assuming that state isJust
 agentObservableS :: Monad m => SF (StateT (AgentOut m o d e) m) a o
-agentObservableS = arrM_ (do
-  o <- lift agentObservableM -- TODO: can't we refactor this in a point-free style?
-  return o)
+agentObservableS = arrM_ (lift agentObservableM)
