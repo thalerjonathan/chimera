@@ -78,17 +78,18 @@ simulatePar p0 sfs0 ins0 e0 = loopPre (p0, sfs0, ins0, e0) simulateParAux
 
       returnA -< ((t, obs, e), (params, sfs, ins, e))
 
+-- deep magic going on here... thx to Manuel Bärenz and Ivan Perez
 runAgents :: Monad m 
           => SF m 
               ([Agent m o d e], [AgentIn o d e], e) 
               ([Agent m o d e], [AgentOut m o d e], [e])
 runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
-    let asIns           = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
+    let asIns        = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
     
     arets <- mapMSF (runReaderS runAgent) -< asIns
     
-    let (aos, aEsSfs)   = unzip arets
-        (es,  sfs')      = unzip aEsSfs
+    let (aos, aEsSfs) = unzip arets
+        (es,  sfs')   = unzip aEsSfs
 
     returnA -< (sfs', aos, es)
 
@@ -105,28 +106,17 @@ runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
                         (e, Agent m o d e)
         runAgentAux = arrM (\(sf, ain, e) -> unMSF sf (ain, e))
 
-commute :: Monad m => ReaderT r (StateT s m) a -> StateT s (ReaderT r m) a
-commute = undefined
+    runStateSF_ :: Monad m => SF (StateT s m) a b -> s -> SF m a (s, b)
+    runStateSF_ sf = runStateS_ $ liftMSFPurer commute sf
 
-runStateSF_ :: Monad m => SF (StateT s m) a b -> s -> SF m a (s, b)
-runStateSF_ sf = runStateS_ $ liftMSFPurer commute sf
+    -- deep magic going on as well...
+    commute :: Monad m => ReaderT r (StateT s m) a -> StateT s (ReaderT r m) a
+    commute rt = 
+      StateT (\s -> 
+        ReaderT (\r -> let st = runReaderT rt r
+                        in runStateT st s))
 
-          {-
-
-          arrM (\(sf, ain, e) -> do 
-        let afunc = runAgentAux (sf, ain, e)
-        let ret = runStateT agentOut afunc
-        retMon <- ret
-        _
-        undefined)
-
-        runAgentAux :: Monad m
-                    => (Agent m o d e, AgentIn o d e, e)
-                    -> ReaderT Double (StateT (AgentOut m o d e) m) (Agent m o d e, e)
-        runAgentAux (sf, ain, e) = do
-          (e', sf') <- unMSF sf (ain, e)
-          return (sf', e')
-
+{-
    a <- ma
    return $ f a
   
