@@ -18,17 +18,12 @@ module FRP.Chimera.Reactive.Transitions
   -- , transitionOnEventWithGuard
   ) where
 
--- import Data.Maybe
-
 import Control.Monad.Random
---import Control.Monad.State
 import Control.Monad.State.Strict
 import FRP.BearRiver
 
---import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Stream
---import FRP.Chimera.Random.Monadic 
 import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.Extensions 
 

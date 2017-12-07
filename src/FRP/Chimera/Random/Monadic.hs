@@ -8,7 +8,7 @@ module FRP.Chimera.Random.Monadic
   ) where
 
 import Control.Monad.Random
-import Control.Monad.State
+import Control.Monad.State.Strict
 
 import FRP.Chimera.Random.Pure 
 

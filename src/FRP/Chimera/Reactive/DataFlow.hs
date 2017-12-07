@@ -17,8 +17,7 @@ module FRP.Chimera.Reactive.DataFlow
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
   ) where
-    
---import Control.Monad.State
+
 import Control.Monad.State.Strict
 import Control.Monad.Random
 import FRP.BearRiver

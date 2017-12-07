@@ -40,7 +40,6 @@ module FRP.Chimera.Agent.Monad
   ) where
 
 import Control.Monad
---import Control.Monad.State
 import Control.Monad.State.Strict
 import FRP.BearRiver
 
