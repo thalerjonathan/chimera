@@ -92,23 +92,20 @@ runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
              => SF m 
                   (Agent m o d e, AgentIn o d e, e)
                   (Agent m o d e, AgentOut m o d e, e)
-    runAgent = arrM runAgentAux
+    runAgent = arrM (\(sf, ain, e) -> do 
+        let afunc = runAgentAux (sf, ain, e)
+        let ret = runStateT agentOut afunc
+        retMon <- ret
+        _
+        undefined)
       where
         runAgentAux :: Monad m
                     => (Agent m o d e, AgentIn o d e, e)
-                    -> ReaderT Double m (Agent m o d e, AgentOut m o d e, e)
+                    -> ReaderT Double (StateT (AgentOut m o d e) m) (Agent m o d e, e)
         runAgentAux (sf, ain, e) = do
-          stateMon <- unMSF sf (ain, e)
-          _
-          --ret <- runStateT stateMon agentOut
-          --let ((e', sf'), ao) = ret
-          --return (sf', ao, e')
-          undefined
-      
-      
-      
-      
-      
+          (e', sf') <- unMSF sf (ain, e)
+          return (sf', e')
+         
           {-
 
    a <- ma
