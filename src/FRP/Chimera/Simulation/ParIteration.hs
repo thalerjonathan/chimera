@@ -5,19 +5,19 @@ module FRP.Chimera.Simulation.ParIteration
     simulatePar
   ) where
 
-import Data.Maybe
+--import Data.Maybe
 
-import Control.Concurrent.STM.TVar
-import Control.Parallel.Strategies
-import qualified Data.Map as Map
+--import Control.Concurrent.STM.TVar
+import Control.Monad.State
+import Control.Monad.Trans.MSF.Reader
+--import Control.Parallel.Strategies
+--import qualified Data.Map as Map
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Init
-import FRP.Chimera.Simulation.Internal
+--import FRP.Chimera.Simulation.Internal
 import FRP.Chimera.Simulation.Common
-
--- TODO: replace simulatePar with yampa pSwitch instead of own SF
 
 -- | Steps the simulation using a parallel update-strategy. 
 -- Conversations and Recursive Simulation is NOT possible using this strategy.
@@ -39,40 +39,70 @@ import FRP.Chimera.Simulation.Common
 -- within the iteration when they were created: although they are not running
 -- yet, they are known already to the system and will run in the next step).
 
--- NOTE: it was decided that we provide our own implementation as it was not possible to implement these
--- iterations with Yampas existing primitives
-simulatePar :: SimulationParams e
+-- for internal use only
+type FeedbackData m o d e = (SimulationParams m e, [Agent m o d e], [AgentIn o d e], e)
+
+simulatePar :: Monad m
+            => SimulationParams m e
             -> [Agent m o d e]
             -> [AgentIn o d e]
             -> e
-            -> SF () (SimulationStepOut s e)
-simulatePar initParams initSfs initIns initEnv = SF { sfTF = tf0 }
+            -> SF m () (SimulationStepOut o e)
+simulatePar p0 sfs0 ins0 e0 = loopPre (p0, sfs0, ins0, e0) simulateParAux
   where
-    tf0 _ = (tfCont, (initTime, [], initEnv))
+    simulateParAux :: Monad m 
+                   => SF m 
+                        ((), FeedbackData m o d e)
+                        ((SimulationStepOut o e), FeedbackData m o d e)
+    simulateParAux = proc (_, (params, sfs, ins, e)) -> do
+      -- iterate agents in parallel
+      (_sfs', outs, es) <- runAgents -< (sfs, ins, e)
+
+      {-
+      -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
+      (sfs'', ins') = nextStep ins outs sfs'
+      -- collapse all environments into one
+      (e', params') = foldEnvironments dt params envs e
+      -- create observable outputs
+      -}
+      let obs = observableAgents (map aiId ins) outs
+
+      {-
+      -- TODO: do NOT shuffle => must not make a difference
+      -- NOTE: shuffling may seem strange in parallel but this will ensure random message-distribution when required
+      (params'', sfsShuffled, insShuffled) = shuffleAgents params' sfs'' ins'
+      -}
+
+      t <- time -< ()
+      let e = head es
+
+      returnA -< ((t, obs, e), (params, sfs, ins, e))
+
+runAgents :: Monad m 
+          => SF m 
+              ([Agent m o d e], [AgentIn o d e], e) 
+              ([Agent m o d e], [AgentOut m o d e], [e])
+runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
+    let asIns = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
+    as <- mapMSF (runReaderS runAgent) -< asIns
+    returnA -< unzip3 as
+
+  where
+    runAgent :: Monad m 
+             => SF m 
+                  (Agent m o d e, AgentIn o d e, e)
+                  (Agent m o d e, AgentOut m o d e, e)
+    runAgent = arrM runAgentAux
       where
-        initTime = 0
-
-        tfCont = simulateParAux initParams initSfs initIns initEnv initTime
-
-        simulateParAux params sfs ins e t = SF' tf
-          where
-            tf dt _ =  (tf', (t', obs, e'))
-              where
-                -- accumulate global simulation-time
-                t' = t + dt
-                -- iterate agents in parallel
-                (sfs', outs, envs) = iterateAgents dt sfs ins e
-                -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
-                (sfs'', ins') = nextStep ins outs sfs'
-                -- collapse all environments into one
-                (e', params') = foldEnvironments dt params envs e
-                -- create observable outputs
-                obs = observableAgents (map aiId ins) outs
-                -- NOTE: shuffling may seem strange in parallel but this will ensure random message-distribution when required
-                (params'', sfsShuffled, insShuffled) = shuffleAgents params' sfs'' ins'
-                -- create continuation
-                tf' = simulateParAux params'' sfsShuffled insShuffled e' t'
-
+        runAgentAux :: Monad m
+                    => (Agent m o d e, AgentIn o d e, e)
+                    -> ReaderT Double m (Agent m o d e, AgentOut m o d e, e)
+        runAgentAux (sf, ain, e) = do
+          stateMon <- unMSF sf (ain, e)
+          let ret = runStateT stateMon agentOut
+          let ((e', sf'), ao) = ret
+          return (sf', ao, e')
+      {-
 foldEnvironments :: Double 
                  -> SimulationParams e 
                  -> [e] 
@@ -88,23 +118,6 @@ foldEnvironments dt params allEnvs defaultEnv
     envFoldFun = fromJust mayEnvFoldFun
 
     foldedEnv = envFoldFun allEnvs 
-
-iterateAgents :: DTime 
-              -> [Agent m o d e] 
-              -> [AgentIn o d e] 
-              -> e
-              -> ([Agent m o d e], [AgentOut s m e], [e])
-iterateAgents dt sfs ins e = unzip3 sfsOutsEnvs
-  where
-    -- NOTE: speedup by running in parallel (if +RTS -Nx)
-    sfsOutsEnvs = parMap rpar (iterateAgentsAux e) (zip sfs ins)
-
-    iterateAgentsAux :: e
-                        -> (Agent m o d e, AgentIn o d e)
-                        -> (Agent m o d e, AgentOut s m e, e)
-    iterateAgentsAux e (sf, ain) = (sf', ao, e')
-      where
-        (sf', (ao, e')) = runAndFreezeSF sf (ain, e) dt
 
 nextStep :: [AgentIn o d e]
          -> [AgentOut s m e]
@@ -198,3 +211,5 @@ collectAllMessages aos = foldr collectAllMessagesAux Map.empty aos
 
             -- NOTE: force evaluation of messages, will reduce memory-overhead EXTREMELY
             accMsgs' = seq newMsgs (Map.insert receiverId newMsgs accMsgs)
+
+            -}
