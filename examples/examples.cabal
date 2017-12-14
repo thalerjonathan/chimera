@@ -11,7 +11,8 @@ executable AgentZero
   hs-source-dirs:  ABS/AgentZero/
   build-depends:   base, 
                     chimera, 
-                    Yampa,
+                    dunai,
+                    bearriver,
                     parallel,
                     MonadRandom,
                     gloss,
@@ -28,7 +29,8 @@ executable FrSIR
     ABS/SIRExamples/Utils/
   build-depends:   base, 
                     chimera, 
-                    Yampa,
+                    dunai,
+                    bearriver,
                     parallel,
                     MonadRandom
 
@@ -38,7 +40,8 @@ executable NewAgents
 
   build-depends:   base, 
                     chimera, 
-                    Yampa,
+                    dunai,
+                    bearriver,
                     parallel
 
   ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
@@ -52,7 +55,8 @@ executable SDSir
 
   build-depends:   base, 
                     chimera, 
-                    Yampa,
+                    dunai,
+                    bearriver,
                     parallel,
                     IfElse,
                     transformers

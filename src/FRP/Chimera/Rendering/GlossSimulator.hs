@@ -21,7 +21,7 @@ import qualified Graphics.Gloss as GLO
 import Graphics.Gloss.Interface.IO.Animate
 import Graphics.Gloss.Interface.IO.Simulate
 
-import FRP.Chimera.Agent.Agent
+import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Simulation

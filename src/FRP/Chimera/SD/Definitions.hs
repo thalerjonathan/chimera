@@ -1,3 +1,4 @@
+{-# LANGUAGE Arrows               #-}
 module FRP.Chimera.SD.Definitions 
   (
     StockId
@@ -15,18 +16,29 @@ module FRP.Chimera.SD.Definitions
 
   , flowInFrom
   , stockInFrom
+
   , flowOutTo
+  , flowOutToM
+  , flowOutToS
+
   , stockOutTo
+  , stockOutToM
+  , stockOutToS
 ) where
 
+import Data.Functor.Identity
 import System.Random (StdGen, mkStdGen)
+
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Concurrent.STM.TVar (newTVarIO)
+import Control.Monad.State.Strict
+import FRP.BearRiver
 
-import FRP.Yampa
-
-import FRP.Chimera.Agent.Agent
+import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Agent.Monad
 import FRP.Chimera.Agent.Reactive
+import FRP.Chimera.Agent.Stream
+import FRP.Chimera.Simulation.Common 
 import FRP.Chimera.Simulation.Simulation
 import FRP.Chimera.Simulation.Init
 
@@ -36,32 +48,32 @@ type SDEnvironment  = ()
 type StockId        = AgentId
 type FlowId         = AgentId
 
-type SDDef          = AgentDef SDStockState SDMsg SDEnvironment 
-type SDBehaviour    = ReactiveBehaviourIgnoreEnv SDStockState SDMsg SDEnvironment 
+type SDDef          = AgentDef Identity SDStockState SDMsg SDEnvironment 
+type SD             = AgentIgnoreEnv Identity SDStockState SDMsg SDEnvironment 
 type SDIn           = AgentIn SDStockState SDMsg SDEnvironment 
-type SDOut          = AgentOut SDStockState SDMsg SDEnvironment 
+type SDOut          = AgentOut Identity SDStockState SDMsg SDEnvironment 
 type SDObservable   = AgentObservable SDStockState
 
-type Stock          = Double -> SDBehaviour
-type Flow           = SDBehaviour
+type Stock          = Double -> SD
+type Flow           = SD
 
 createStock :: AgentId 
-              -> SDStockState
-              -> Stock
-              -> SDDef
+            -> SDStockState
+            -> Stock
+            -> SDDef
 createStock stockId stockState stockBeh = AgentDef { 
-    adId = stockId
-  , adBeh = ignoreEnv (stockBeh stockState)
-  , adInitMessages = NoEvent
+    adId        = stockId
+  , adBeh       = ignoreEnv (stockBeh stockState)
+  , adInitData  = []
   }
 
 createFlow :: AgentId 
-              -> Flow
-              -> SDDef
+           -> Flow
+           -> SDDef
 createFlow flowId flowBeh = AgentDef { 
-    adId = flowId
-  , adBeh = ignoreEnv flowBeh
-  , adInitMessages = NoEvent
+    adId        = flowId
+  , adBeh       = ignoreEnv flowBeh
+  , adInitData  = []
   }
 
 flowInFrom :: AgentId -> SDIn -> Double
@@ -73,28 +85,39 @@ stockInFrom = valueInFrom
 flowOutTo :: Double -> AgentId -> SDOut -> SDOut
 flowOutTo = valueOutTo
 
+flowOutToM :: Double -> AgentId -> StateT SDOut Identity ()
+flowOutToM = valueOutToM
+
+flowOutToS :: SF (StateT SDOut Identity) (Double, AgentId) () 
+flowOutToS = valueOutToS
+
 stockOutTo :: Double -> AgentId -> SDOut -> SDOut
 stockOutTo = valueOutTo
+
+stockOutToM :: Double -> AgentId -> StateT SDOut Identity ()
+stockOutToM = valueOutToM
+
+stockOutToS :: SF (StateT SDOut Identity) (Double, AgentId) () 
+stockOutToS = valueOutToS 
 
 runSD :: [SDDef] -> DTime -> Time -> [(Time, [SDObservable])]
 runSD initSdDefs dt t = map (\(t, outs, _) -> (t, outs)) sdObsEnv
   where
-    sdObsEnv = simulateTime 
+    sdObsEnvM = simulateTime 
                   initSdDefs 
                   () 
                   params 
                   dt 
                   t
 
+    sdObsEnv = runIdentity sdObsEnvM
+
     -- SystemDynamics MUST NOT rely on RNGs at all, so no need to initialize it
     -- SystemDynamics MUST ABSOLUTELY only run Parllel and there is no need to shuffle the agents (=stocks)
     params = SimulationParams {
-      simStrategy = Parallel
-      , simEnvBehaviour = Nothing
-      , simEnvFold = Nothing
-      , simShuffleAgents = False
-      , simRng = dummyRng
-      , simIdGen = dummyIdGen
+      simShuffleAgents  = False
+    , simRng            = dummyRng
+    , simIdGen          = dummyIdGen
     }
 
     dummyIdGen = unsafePerformIO  $ newTVarIO 0
@@ -106,12 +129,19 @@ runSD initSdDefs dt t = map (\(t, outs, _) -> (t, outs)) sdObsEnv
 dummyRng :: StdGen
 dummyRng = mkStdGen 0
 
-filterMessageValue :: (AgentMessage SDMsg) -> Double -> Double
+filterMessageValue :: (AgentData SDMsg) -> Double -> Double
 filterMessageValue (_, Value v) _ = v
 
 valueInFrom :: AgentId -> SDIn -> Double
-valueInFrom senderId ain = onMessageFrom senderId filterMessageValue ain 0.0 
+valueInFrom senderId ain = onDataFlowFrom senderId filterMessageValue ain 0.0 
 
 valueOutTo :: Double -> AgentId -> SDOut -> SDOut
-valueOutTo value receiverId ao = sendMessage (receiverId, Value value) ao
+valueOutTo value receiverId ao = dataFlow (receiverId, Value value) ao
+
+valueOutToM :: Double -> AgentId -> StateT SDOut Identity ()
+valueOutToM value receiverId = dataFlowM (receiverId, Value value) 
+
+valueOutToS :: SF (StateT SDOut Identity) (Double, AgentId) () 
+valueOutToS = proc (value, receiverId) -> do
+  dataFlowS -< (receiverId, Value value) 
 ------------------------------------------------------------------------------------------------------------------------

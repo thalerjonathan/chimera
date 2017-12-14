@@ -1,7 +1,8 @@
 {-# LANGUAGE Arrows #-}
 module FRP.Chimera.Simulation.Common 
   (
-    SimulationStepOut
+    AgentObservable
+  , SimulationStepOut
 
   , shuffleAgents
   , newAgentIn

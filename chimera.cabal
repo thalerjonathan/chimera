@@ -48,10 +48,10 @@ library
     FRP.Chimera.Random.Pure
     FRP.Chimera.Random.Stream
 
-    FRP.Chimera.Rendering.Discrete2d
-    FRP.Chimera.Rendering.Continuous2d
-    FRP.Chimera.Rendering.Network
-    FRP.Chimera.Rendering.GlossSimulator
+    --FRP.Chimera.Rendering.Discrete2d
+    --FRP.Chimera.Rendering.Continuous2d
+    --FRP.Chimera.Rendering.Network
+    -- FRP.Chimera.Rendering.GlossSimulator
 
     FRP.Chimera.Reactive.DataFlow
     FRP.Chimera.Reactive.Extensions
@@ -59,12 +59,12 @@ library
 
     FRP.Chimera.Simulation.Common
     FRP.Chimera.Simulation.Init
-    -- FRP.Chimera.Simulation.Simulation
+    FRP.Chimera.Simulation.Simulation
     -- FRP.Chimera.Simulation.Replication
     FRP.Chimera.Simulation.ParIteration      
     -- FRP.Chimera.Simulation.SeqIteration 
-    -- FRP.Chimera.Simulation.Internal
-    -- FRP.Chimera.SD.Definitions
+    FRP.Chimera.Simulation.Internal
+    FRP.Chimera.SD.Definitions
 
 Test-Suite test
   default-language:

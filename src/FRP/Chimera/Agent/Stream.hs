@@ -3,7 +3,9 @@
 module FRP.Chimera.Agent.Stream 
   (
     dataFlowS
+
   , agentObservableS
+  , setAgentObservableS
   ) where
 
 import Control.Monad.State.Strict
@@ -18,3 +20,6 @@ dataFlowS = arrM (lift . dataFlowM)
 -- NOTE: assuming that state isJust
 agentObservableS :: Monad m => SF (StateT (AgentOut m o d e) m) a o
 agentObservableS = arrM_ (lift agentObservableM)
+
+setAgentObservableS :: Monad m => SF (StateT (AgentOut m o d e) m) o ()
+setAgentObservableS = arrM (lift . setAgentObservableM)

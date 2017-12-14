@@ -101,7 +101,8 @@ module FRP.Chimera
   -- FRP.Chimera.Agent.Stream
   , dataFlowS
   , agentObservableS
-
+  , setAgentObservableS
+  
   -- FRP.Chimera.Environment.Continuous
   , Continuous2dDimension
   , Continuous2dCoord
@@ -305,7 +306,9 @@ module FRP.Chimera
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
 
+  -- Problem: reacthandle is missing
   -- FRP.Chimera.Rendering.Continuous2d
+  {-
   , AgentRendererCont2d
   , AgentColorerCont2d
   , AgentCoordCont2d
@@ -356,6 +359,7 @@ module FRP.Chimera
 
   , defaultAgentRendererNetwork
   , defaultAgentColorerNetwork
+-}
 
   -- FRP.Chimera.SD.Definitions
   , StockId
@@ -373,8 +377,14 @@ module FRP.Chimera
 
   , flowInFrom
   , stockInFrom
+
   , flowOutTo
+  , flowOutToM
+  , flowOutToS
+
   , stockOutTo
+  , stockOutToM
+  , stockOutToS
 
   -- FRP.Chimera.Simulation.Init 
   , SimulationParams (..)
@@ -417,15 +427,11 @@ import FRP.Chimera.Reactive.DataFlow
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
 
-import FRP.Chimera.Rendering.Continuous2d
-import FRP.Chimera.Rendering.Discrete2d
-import FRP.Chimera.Rendering.GlossSimulator
-import FRP.Chimera.Rendering.Network
-
-import FRP.Chimera.SD.Definitions
-import FRP.Chimera.Simulation.Init 
-import FRP.Chimera.Simulation.Replication   
-import FRP.Chimera.Simulation.Simulation
+-- Problem: reacthandle is missing
+--import FRP.Chimera.Rendering.Continuous2d
+--import FRP.Chimera.Rendering.Discrete2d
+--import FRP.Chimera.Rendering.GlossSimulator
+--import FRP.Chimera.Rendering.Network
 
 import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 

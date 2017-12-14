@@ -9,8 +9,8 @@ module StockFlow
   , recoveryRateFlow
   ) where
 
+import FRP.BearRiver
 import FRP.Chimera
-import FRP.Yampa
 
 import Model
 
@@ -22,11 +22,11 @@ susceptibleStock initValue = proc ain -> do
   let infectionRate = flowInFrom infectionRateFlowId ain
 
   stockValue <- (initValue+) ^<< integral -< (-infectionRate)
-  
-  let ao = agentOutObs stockValue
-  let ao' = stockOutTo stockValue infectionRateFlowId ao
 
-  returnA -< ao'
+  setAgentObservableS -< stockValue
+  stockOutToS -< (stockValue, infectionRateFlowId)
+
+  returnA -< ()
 
 infectiousStock :: Stock
 infectiousStock initValue = proc ain -> do
@@ -35,21 +35,21 @@ infectiousStock initValue = proc ain -> do
 
   stockValue <- (initValue+) ^<< integral -< (infectionRate - recoveryRate)
   
-  let ao = agentOutObs stockValue
-  let ao' = stockOutTo stockValue infectionRateFlowId ao 
-  let ao'' = stockOutTo stockValue recoveryRateFlowId ao'
-  
-  returnA -< ao''
+  setAgentObservableS -< stockValue
+  stockOutToS -< (stockValue, infectionRateFlowId)
+  stockOutToS -< (stockValue, recoveryRateFlowId)
+
+  returnA -< ()
 
 recoveredStock :: Stock
 recoveredStock initValue = proc ain -> do
   let recoveryRate = flowInFrom recoveryRateFlowId ain
 
   stockValue <- (initValue+) ^<< integral -< recoveryRate
-  
-  let ao = agentOutObs stockValue
 
-  returnA -< ao
+  setAgentObservableS -< stockValue
+
+  returnA -< ()
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -62,10 +62,10 @@ infectionRateFlow = proc ain -> do
 
   let flowValue = (infectious * contactRate * susceptible * infectivity) / totalPopulation
   
-  let ao' = flowOutTo flowValue susceptibleStockId agentOut
-  let ao'' = flowOutTo flowValue infectiousStockId ao'
+  flowOutToS -< (flowValue, susceptibleStockId)
+  flowOutToS -< (flowValue, infectiousStockId)
 
-  returnA -< ao''
+  returnA -< ()
 
 recoveryRateFlow :: Flow
 recoveryRateFlow = proc ain -> do
@@ -73,8 +73,8 @@ recoveryRateFlow = proc ain -> do
 
   let flowValue = infectious / avgIllnessDuration
 
-  let ao' = flowOutTo flowValue infectiousStockId agentOut
-  let ao'' = flowOutTo flowValue recoveredStockId ao'
+  flowOutToS -< (flowValue, infectiousStockId)
+  flowOutToS -< (flowValue, recoveredStockId)
 
-  returnA -< ao''
+  returnA -< ()
 ------------------------------------------------------------------------------------------------------------------------
