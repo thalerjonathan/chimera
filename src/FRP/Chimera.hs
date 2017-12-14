@@ -378,15 +378,23 @@ module FRP.Chimera
 
   -- FRP.Chimera.Simulation.Init 
   , SimulationParams (..)
-  , UpdateStrategy (..)
 
   , initRng
   , initSimulation
-  , initSimNoEnv
   , newAgentId
 
   -- FRP.Chimera.Simulation.Replication   
+  -- TODO
+
   -- FRP.Chimera.Simulation.Simulation
+  , AgentObservableAggregator
+  
+  --, simulateIOInit
+
+  , simulateTime
+  --, simulateTimeDeltas
+  --, simulateAggregateTimeDeltas
+  , simulateAggregateTime
   ) where
 
 import FRP.Chimera.Agent.Interface
@@ -422,7 +430,7 @@ import FRP.Chimera.Simulation.Simulation
 import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 
 --import FRP.Chimera.Simulation.Replication   
---import FRP.Chimera.Simulation.Simulation
+import FRP.Chimera.Simulation.Simulation
 
 {-
 ------------------------------------------------------------------------------------------------------------------------

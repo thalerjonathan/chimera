@@ -3,7 +3,6 @@ module FRP.Chimera.Simulation.Common
   (
     SimulationStepOut
 
-  , runEnv
   , shuffleAgents
   , newAgentIn
   , observableAgents
@@ -20,22 +19,10 @@ import FRP.Chimera.Simulation.Init
 type AgentObservable o      = (AgentId, o)
 type SimulationStepOut o e  = (Time, [AgentObservable o], e)
 
-runEnv :: Monad m => SF m (SimulationParams m e, e) (SimulationParams m e, e)
-runEnv = proc (params, e) -> do
-  -- TODO: fix
-  {-
-  let mayEnvBeh = simEnvBehaviour params
-  maybe (e, params) (runEnvAux params e) mayEnvBeh
-  (envBeh', e') = runAndFreezeSF envBeh e dt
-  params' = params { simEnvBehaviour = Just envBeh' }
-  -}
-  returnA -< (params, e)
-
-shuffleAgents :: Monad m
-              => SimulationParams m e 
-              -> [a] 
-              -> [b] 
-              -> (SimulationParams m e, [a], [b])
+shuffleAgents :: SimulationParams 
+              -> [a]
+              -> [b]
+              -> (SimulationParams, [a], [b])
 shuffleAgents params as bs 
     | doShuffle = (params', as', bs')
     | otherwise = (params, as, bs)
