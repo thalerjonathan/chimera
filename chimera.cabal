@@ -60,7 +60,7 @@ library
     FRP.Chimera.Simulation.Common
     FRP.Chimera.Simulation.Init
     FRP.Chimera.Simulation.Simulation
-    -- FRP.Chimera.Simulation.Replication
+    FRP.Chimera.Simulation.Replication
     FRP.Chimera.Simulation.ParIteration      
     -- FRP.Chimera.Simulation.SeqIteration 
     FRP.Chimera.Simulation.Internal

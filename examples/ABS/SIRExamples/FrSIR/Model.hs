@@ -1,15 +1,15 @@
 module Model 
   (
     SIRState (..)
-  , FrSIRMsg (..)
+  , FrSIRData (..)
 
   , FrSIRAgentState
   , FrSIREnvironment
 
+  , FrSIRAgent
+  , FrSIRAgentReadEnv
+  , FrSIRAgentIgnoreEnv
   , FrSIRAgentDef
-  , FrSIRAgentBehaviour
-  , FrSIRAgentBehaviourReadEnv
-  , FrSIRAgentBehaviourIgnoreEnv
   , FrSIRAgentIn
   , FrSIRAgentOut
   , FrSIRAgentObservable
@@ -26,13 +26,14 @@ module Model
   , illnessTimeoutSS
   ) where
 
+import Control.Monad.Random
 import FRP.Chimera
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- DOMAIN-SPECIFIC AGENT-DEFINITIONS
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 data SIRState = Susceptible | Infected | Recovered deriving (Eq, Show)
-data FrSIRMsg = Contact SIRState deriving (Eq, Show)
+data FrSIRData = Contact SIRState deriving (Eq, Show)
 
 type FrSIRAgentState = SIRState
 
@@ -41,20 +42,22 @@ type FrSIRAgentState = SIRState
 -- deal with big (>10.000 nodes) complete networks as it sucks up massive memory. 
 type FrSIREnvironment = [AgentId]
 
-type FrSIRAgentDef                = AgentDef FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentBehaviour          = AgentBehaviour FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentBehaviourReadEnv   = ReactiveBehaviourReadEnv FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentBehaviourIgnoreEnv = ReactiveBehaviourIgnoreEnv FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentOut                = AgentOut FrSIRAgentState FrSIRMsg FrSIREnvironment
+type FrSIRAgentMonad g = (Rand g)
+
+type FrSIRAgentDef g              = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgent g                 = AgentRandom g FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentReadEnv g          = AgentReadEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentIgnoreEnv g        = AgentIgnoreEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentOut g              = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
 type FrSIRAgentObservable         = AgentObservable FrSIRAgentState
 
-type FrSIREventSource         = EventSource FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRReplicationConfig   = ReplicationConfig FrSIRAgentState FrSIRMsg FrSIREnvironment
-type FrSIRAgentDefReplicator  = AgentDefReplicator FrSIRAgentState FrSIRMsg FrSIREnvironment
-------------------------------------------------------------------------------------------------------------------------
+type FrSIREventSource g a         = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment a
+type FrSIRReplicationConfig g     = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentDefReplicator g    = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+-------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- MODEL-PARAMETERS
 -- average probability of getting infected 
 infectivity :: Double
@@ -75,4 +78,4 @@ contactSS = 1 -- 20
 -- number of super-samples for illness duration time-out: because the duration is quite long on average we can sample it with low frequency (low number of samples)
 illnessTimeoutSS :: Int
 illnessTimeoutSS = 1 -- 2
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------

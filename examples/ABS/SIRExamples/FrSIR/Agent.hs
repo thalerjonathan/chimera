@@ -10,38 +10,50 @@ import FRP.Yampa
 
 import Model
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Non-Reactive Functions
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 gotInfected :: RandomGen g => FrSIRAgentIn -> Rand g Bool
-gotInfected ain = onMessageM gotInfectedAux ain False
+gotInfected ain = onDataFlowM gotInfectedAux ain False
   where
-    gotInfectedAux :: RandomGen g => Bool -> AgentMessage FrSIRMsg -> Rand g Bool
+    gotInfectedAux :: RandomGen g => Bool -> AgentData FrSIRData -> Rand g Bool
     gotInfectedAux False (_, Contact Infected) = randomBoolM infectivity
     gotInfectedAux x _ = return x
 
-respondToContactWith :: SIRState -> FrSIRAgentIn -> FrSIRAgentOut -> FrSIRAgentOut
-respondToContactWith state ain ao = onMessage respondToContactWithAux ain ao
+respondToContactWith :: RandomGen g 
+                     => SIRState 
+                     -> FrSIRAgentIn 
+                     -> FrSIRAgentOut g 
+                     -> FrSIRAgentOut g
+respondToContactWith state ain ao = 
+    onDataFlow respondToContactWithAux ain ao
   where
-    respondToContactWithAux :: AgentMessage FrSIRMsg -> FrSIRAgentOut -> FrSIRAgentOut
-    respondToContactWithAux (senderId, Contact _) ao = sendMessage (senderId, Contact state) ao
-------------------------------------------------------------------------------------------------------------------------
+    respondToContactWithAux :: RandomGen g
+                            => AgentData FrSIRData 
+                            -> FrSIRAgentOut g 
+                            -> FrSIRAgentOut g
+    respondToContactWithAux (senderId, Contact _) ao = 
+      dataFlow (senderId, Contact state) ao
+-------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Reactive Functions
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- SUSCEPTIBLE
-sirAgentSuceptible :: RandomGen g => g -> FrSIRAgentBehaviour
+sirAgentSuceptible :: RandomGen g => g -> FrSIRAgent g
 sirAgentSuceptible g = 
-  transitionOnEvent (sirAgentInfectedEvent g) (readEnv $ sirAgentSusceptibleBehaviour g) (sirAgentInfected g)
+  transitionOnEvent 
+    (sirAgentInfectedEvent g) 
+    (readEnv $ sirAgentSusceptibleBehaviour g) 
+    (sirAgentInfected g)
 
-sirAgentInfectedEvent :: RandomGen g => g -> FrSIREventSource
+sirAgentInfectedEvent :: RandomGen g => g -> FrSIREventSource g ()
 sirAgentInfectedEvent g = proc (ain, ao, e) -> do
     isInfected <- randomSF g -< gotInfected ain
     infectionEvent <- edge -< isInfected
     returnA -< infectionEvent
 
-sirAgentSusceptibleBehaviour :: RandomGen g => g -> FrSIRAgentBehaviourReadEnv
+sirAgentSusceptibleBehaviour :: RandomGen g => g -> FrSIRAgentReadEnv g
 sirAgentSusceptibleBehaviour g = proc (ain, e) -> do
     let ao = agentOutObs Susceptible
     ao' <- sendMessageOccasionallySrcSS 
@@ -52,22 +64,22 @@ sirAgentSusceptibleBehaviour g = proc (ain, e) -> do
     returnA -< ao'
 
 -- INFECTED
-sirAgentInfected :: RandomGen g => g -> FrSIRAgentBehaviour
+sirAgentInfected :: RandomGen g => g -> FrSIRAgent g
 sirAgentInfected g = 
   transitionAfterExpSS g illnessDuration illnessTimeoutSS (ignoreEnv $ sirAgentInfectedBehaviour g) sirAgentRecovered
 
-sirAgentInfectedBehaviour :: RandomGen g => g -> FrSIRAgentBehaviourIgnoreEnv
+sirAgentInfectedBehaviour :: RandomGen g => g -> FrSIRAgentIgnoreEnv g
 sirAgentInfectedBehaviour g = proc ain -> do
     let ao = agentOutObs Infected
     returnA -< respondToContactWith Infected ain ao
 
 -- RECOVERED
-sirAgentRecovered :: FrSIRAgentBehaviour
+sirAgentRecovered :: RandomGen g => FrSIRAgent g
 sirAgentRecovered = doNothingObs Recovered
 
 -- INITIAL CASES
-sirAgentBehaviour :: RandomGen g => g -> SIRState -> FrSIRAgentBehaviour
+sirAgentBehaviour :: RandomGen g => g -> SIRState -> FrSIRAgent g
 sirAgentBehaviour g Susceptible = sirAgentSuceptible g
 sirAgentBehaviour g Infected = sirAgentInfected g
 sirAgentBehaviour _ Recovered = sirAgentRecovered
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------

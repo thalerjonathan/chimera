@@ -21,7 +21,7 @@ import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.ParIteration
 
-type AgentObservableAggregator o e a  = SimulationStepOut o e-> a
+type AgentObservableAggregator o e a  = SimulationStepOut o e -> a
 
 {-
 -------------------------------------------------------------------------------

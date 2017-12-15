@@ -11,7 +11,9 @@ import FRP.Yampa
 import Agent
 import Model
 
-createFrSIRNumInfected :: Int -> Int -> IO ([FrSIRAgentDef], FrSIREnvironment)
+createFrSIRNumInfected :: Int 
+                       -> Int 
+                       -> IO ([FrSIRAgentDef], FrSIREnvironment)
 createFrSIRNumInfected agentCount numInfected = do
   let agentIds = [0 .. (agentCount-1)]
   let infectedIds = take numInfected agentIds
@@ -42,4 +44,3 @@ sirAgentDefReplicator numInfected g ad = (ad', g')
     -- NOTE: also need to overwrite behaviour with one with a different RNG!
     beh = sirAgentBehaviour g' s
     ad' = ad { adBeh = beh }
-------------------------------------------------------------------------------------------------------------------------

@@ -394,7 +394,17 @@ module FRP.Chimera
   , newAgentId
 
   -- FRP.Chimera.Simulation.Replication   
-  -- TODO
+  , AgentDefReplicator
+  , EnvironmentReplicator
+  , Replication
+  
+  , ReplicationConfig (..)
+
+  , defaultEnvReplicator
+  , defaultAgentReplicator
+
+  , runReplications
+  , runReplicationsWithAggregation
 
   -- FRP.Chimera.Simulation.Simulation
   , AgentObservableAggregator
@@ -405,6 +415,9 @@ module FRP.Chimera
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas
   , simulateAggregateTime
+
+  -- FRP.Chimera.Simulation.Common 
+  , AgentObservable
   ) where
 
 import FRP.Chimera.Agent.Interface
@@ -435,8 +448,9 @@ import FRP.Chimera.Reactive.Transitions
 
 import FRP.Chimera.SD.Definitions
 import FRP.Chimera.Simulation.Init 
---import FRP.Chimera.Simulation.Replication   
+import FRP.Chimera.Simulation.Replication   
 import FRP.Chimera.Simulation.Simulation
+import FRP.Chimera.Simulation.Common
 
 {-
 ------------------------------------------------------------------------------------------------------------------------
