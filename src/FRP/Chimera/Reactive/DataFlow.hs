@@ -75,7 +75,7 @@ dataFlowOccasionallySrcSS rate ss dfSrc = proc aie -> do
     _          <- arrM $ mapM (lift . dataFlowOccasionallySrcSSAux) -< (zip sendEvtsSS dfSS)
     returnA -< ()
   where
-    dataFlowOccasionallySrcSSAux :: Monad m
+    dataFlowOccasionallySrcSSAux :: MonadState (AgentOut m o d e) m
                                  => (Event (), AgentData d)
                                  -> (StateT (AgentOut m o d e) m) ()
     dataFlowOccasionallySrcSSAux (NoEvent,  _) = return ()

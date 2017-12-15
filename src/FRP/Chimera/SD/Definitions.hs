@@ -1,4 +1,5 @@
 {-# LANGUAGE Arrows               #-}
+{-# LANGUAGE FlexibleContexts     #-}
 module FRP.Chimera.SD.Definitions 
   (
     StockId
@@ -141,7 +142,7 @@ valueOutTo value receiverId ao = dataFlow (receiverId, Value value) ao
 valueOutToM :: Double -> AgentId -> StateT SDOut Identity ()
 valueOutToM value receiverId = dataFlowM (receiverId, Value value) 
 
-valueOutToS :: SF (StateT SDOut Identity) (Double, AgentId) () 
+valueOutToS :: SF (StateT SDOut Identity) (Double, AgentId) ()  --MonadState (AgentOut Identity o d e) Identity
 valueOutToS = proc (value, receiverId) -> do
   dataFlowS -< (receiverId, Value value) 
 ------------------------------------------------------------------------------------------------------------------------

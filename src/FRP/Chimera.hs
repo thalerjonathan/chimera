@@ -270,6 +270,9 @@ module FRP.Chimera
   , randomExpS
   , randomExpS_
   
+  , randomRandS
+  , randomRandS_
+  
   -- FRP.Chimera.Reactive.Extensions
   , superSamplingUniform
   , afterExp

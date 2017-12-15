@@ -9,6 +9,9 @@ module FRP.Chimera.Random.Stream
 
   , randomExpS
   , randomExpS_
+  
+  , randomRandS
+  , randomRandS_
   ) where
 
 import Control.Monad.Random
@@ -47,3 +50,11 @@ randomExpS_ :: MonadRandom m => MSF m Double Double
 randomExpS_ = proc lambda -> do
   r <- getRandomRS ((0, 1) :: (Double, Double)) -< ()
   returnA -< ((-log r) / lambda)
+
+randomRandS :: MonadRandom m => m a -> MSF m () a
+randomRandS r = arrM_ r
+
+randomRandS_ :: MonadRandom m => MSF m (m a) a
+randomRandS_ = proc r -> do
+  a <- arrM (\r -> r) -< r
+  returnA -< a

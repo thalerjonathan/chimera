@@ -32,8 +32,11 @@ executable FrSIR
                     dunai,
                     bearriver,
                     parallel,
-                    MonadRandom
+                    MonadRandom,
+                    mtl
 
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
+  
 executable NewAgents
   main-is:         Main.hs
   hs-source-dirs:  ABS/NewAgents/

@@ -6,6 +6,8 @@ module Model
   , FrSIRAgentState
   , FrSIREnvironment
 
+  , FrSIRAgentMonad
+  
   , FrSIRAgent
   , FrSIRAgentReadEnv
   , FrSIRAgentIgnoreEnv
@@ -45,7 +47,7 @@ type FrSIREnvironment = [AgentId]
 type FrSIRAgentMonad g = (Rand g)
 
 type FrSIRAgentDef g              = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgent g                 = AgentRandom g FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgent g                 = AgentRandom FrSIRAgentState FrSIRData FrSIREnvironment g
 type FrSIRAgentReadEnv g          = AgentReadEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
 type FrSIRAgentIgnoreEnv g        = AgentIgnoreEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
 type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRData FrSIREnvironment
