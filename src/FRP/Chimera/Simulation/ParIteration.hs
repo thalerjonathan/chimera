@@ -40,33 +40,25 @@ import FRP.Chimera.Simulation.Common
 -- yet, they are known already to the system and will run in the next step).
 
 -- for internal use only
-type FeedbackData m o d e = (SimulationParams, [Agent m o d e], [AgentIn o d e], e)
+type FeedbackData m o d = (SimulationParams, [Agent m o d], [AgentIn o d])
 
 simulatePar :: Monad m
             => SimulationParams
-            -> [Agent m o d e]
-            -> [AgentIn o d e]
-            -> e
-            -> SF m () (SimulationStepOut o e)
-simulatePar p0 sfs0 ins0 e0 = loopPre (p0, sfs0, ins0, e0) simulateParAux
+            -> [Agent m o d]
+            -> [AgentIn o d]
+            -> SF m () (SimulationStepOut o)
+simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
   where
     simulateParAux :: Monad m 
                    => SF m 
-                        ((), FeedbackData m o d e)
-                        ((SimulationStepOut o e), FeedbackData m o d e)
-    simulateParAux = proc (_, (params, sfs, ins, e)) -> do
+                        ((), FeedbackData m o d)
+                        ((SimulationStepOut o), FeedbackData m o d)
+    simulateParAux = proc (_, (params, sfs, ins)) -> do
       -- iterate agents in parallel
-      (sfs', outs, es) <- runAgents -< (sfs, ins, e)
+      (sfs', outs) <- runAgents -< (sfs, ins)
 
       -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
       let (sfs'', ins') = nextStep ins outs sfs'
-      
-      -- NOTE: ignoring environment stuff for now
-      {-
-      -- collapse all environments into one
-      (e', params') = foldEnvironments dt params envs e
-      -}
-
       -- create observable outputs
       let obs = observableAgents (map aiId ins) outs
 
@@ -78,38 +70,37 @@ simulatePar p0 sfs0 ins0 e0 = loopPre (p0, sfs0, ins0, e0) simulateParAux
       -}
 
       t <- time -< ()
-      let e = head es
 
-      returnA -< ((t, obs, e), (params, sfs'', ins', e))
+      returnA -< ((t, obs), (params, sfs'', ins'))
 
 -- deep magic going on here... thx to Manuel Bärenz and Ivan Perez
 -- NOTE: we can also run agents with a dt of 0 here if required
 runAgents :: Monad m 
           => SF m 
-              ([Agent m o d e], [AgentIn o d e], e) 
-              ([Agent m o d e], [AgentOut m o d e], [e])
-runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
-    let asIns        = zipWith (\sf ain -> (dt, (sf, ain, e))) sfs ins
+              ([Agent m o d], [AgentIn o d]) 
+              ([Agent m o d], [AgentOut m o d])
+runAgents = readerS $ proc (dt, (sfs, ins)) -> do
+    let asIns        = zipWith (\sf ain -> (dt, (sf, ain))) sfs ins
     
     arets <- mapMSF (runReaderS runAgent) -< asIns
-    
-    let (aos, aEsSfs) = unzip arets
-        (es,  sfs')   = unzip aEsSfs
-
-    returnA -< (sfs', aos, es)
+    let (aos, sfs') = unzip arets
+    returnA -< (sfs', aos)
 
   where
     runAgent :: Monad m 
              => SF m 
-                  (Agent m o d e, AgentIn o d e, e)
-                  (AgentOut m o d e, (e, Agent m o d e))
+                  (Agent m o d, AgentIn o d)
+                  (AgentOut m o d, Agent m o d)
     runAgent = runStateSF_ runAgentAux agentOut
       where
         runAgentAux :: Monad m
-                    => SF (StateT (AgentOut m o d e) m) 
-                        (Agent m o d e, AgentIn o d e, e) 
-                        (e, Agent m o d e)
-        runAgentAux = arrM (\(sf, ain, e) -> unMSF sf (ain, e))
+                    => SF (StateT (AgentOut m o d) m) 
+                        (Agent m o d, AgentIn o d) 
+                        (Agent m o d)
+        runAgentAux = arrM (\(sf, ain) -> do
+          -- returning (), as we are only interested in the effects on agentout
+          (_, sf') <- unMSF sf ain
+          return sf')
 
     runStateSF_ :: Monad m => SF (StateT s m) a b -> s -> SF m a (s, b)
     runStateSF_ sf = runStateS_ $ liftMSFPurer commute sf
@@ -121,28 +112,10 @@ runAgents = readerS $ proc (dt, (sfs, ins, e)) -> do
         ReaderT (\r -> let st = runReaderT rt r
                         in runStateT st s))
 
-{-
-foldEnvironments :: Double 
-                 -> SimulationParams e 
-                 -> [e] 
-                 -> e 
-                 -> (e, SimulationParams e)
-foldEnvironments dt params allEnvs defaultEnv
-    | isFoldingEnv = runEnv dt params foldedEnv 
-    | otherwise = (defaultEnv, params)
-  where
-    isFoldingEnv = isJust mayEnvFoldFun
-
-    mayEnvFoldFun = simEnvFold params
-    envFoldFun = fromJust mayEnvFoldFun
-
-    foldedEnv = envFoldFun allEnvs 
--}
-
-nextStep :: [AgentIn o d e]
-         -> [AgentOut m o d e]
-         -> [Agent m o d e]
-         -> ([Agent m o d e], [AgentIn o d e])
+nextStep :: [AgentIn o d]
+         -> [AgentOut m o d]
+         -> [Agent m o d]
+         -> ([Agent m o d], [AgentIn o d])
 nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
   where
     (asfs', newAgentIns) = processAgents asfs oldAgentIns newAgentOuts
@@ -150,25 +123,25 @@ nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
     newAgentOutsWithAis = map (\(ai, ao) -> (aiId ai, ao)) (zip oldAgentIns newAgentOuts) 
     newAgentIns' = distributeData newAgentIns newAgentOutsWithAis
 
-    processAgents :: [Agent m o d e]
-                  -> [AgentIn o d e]
-                  -> [AgentOut m o d e]
-                  -> ([Agent m o d e], [AgentIn o d e])
+    processAgents :: [Agent m o d]
+                  -> [AgentIn o d]
+                  -> [AgentOut m o d]
+                  -> ([Agent m o d], [AgentIn o d])
     processAgents asfs oldIs newOs = foldr handleAgent ([], []) asfsIsOs
       where
         asfsIsOs = zip3 asfs oldIs newOs
 
-        handleAgent :: (Agent m o d e, AgentIn o d e, AgentOut m o d e)
-                    -> ([Agent m o d e], [AgentIn o d e])
-                    -> ([Agent m o d e], [AgentIn o d e])
+        handleAgent :: (Agent m o d, AgentIn o d, AgentOut m o d)
+                    -> ([Agent m o d], [AgentIn o d])
+                    -> ([Agent m o d], [AgentIn o d])
         handleAgent a@(_, oldIn, newOut) acc = handleKillOrLiveAgent acc' a
           where
             idGen = aiIdGen oldIn
             acc' = handleCreateAgents idGen newOut acc 
 
-        handleKillOrLiveAgent :: ([Agent m o d e], [AgentIn o d e])
-                              -> (Agent m o d e, AgentIn o d e, AgentOut m o d e)
-                              -> ([Agent m o d e], [AgentIn o d e])
+        handleKillOrLiveAgent :: ([Agent m o d], [AgentIn o d])
+                              -> (Agent m o d, AgentIn o d, AgentOut m o d)
+                              -> ([Agent m o d], [AgentIn o d])
         handleKillOrLiveAgent acc@(asfsAcc, ainsAcc) (sf, oldIn, newOut)
             | killAgent = acc
             | otherwise = (sf : asfsAcc, newIn : ainsAcc) 
@@ -177,9 +150,9 @@ nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
             newIn = newAgentIn oldIn
 
 handleCreateAgents :: TVar Int
-                   -> AgentOut m o d e
-                   -> ([Agent m o d e], [AgentIn o d e])
-                   -> ([Agent m o d e], [AgentIn o d e])
+                   -> AgentOut m o d
+                   -> ([Agent m o d], [AgentIn o d])
+                   -> ([Agent m o d], [AgentIn o d])
 handleCreateAgents idGen ao acc@(asfsAcc, ainsAcc) 
     | not $ null newAgentDefs = (asfsAcc ++ newSfs, ainsAcc ++ newAis)
     | otherwise = acc
@@ -188,16 +161,16 @@ handleCreateAgents idGen ao acc@(asfsAcc, ainsAcc)
     newSfs = map adBeh newAgentDefs
     newAis = map (startingAgentInFromAgentDef idGen) newAgentDefs
 
-distributeData :: [AgentIn o d e] 
-               -> [(AgentId, AgentOut m o d e)] 
-               -> [AgentIn o d e]
+distributeData :: [AgentIn o d] 
+               -> [(AgentId, AgentOut m o d)] 
+               -> [AgentIn o d]
 distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE: speedup by running in parallel (if +RTS -Nx)
   where
     allData = collectAllData aouts
 
     distributeDataAux :: Map.Map AgentId [AgentData d]
-                      -> AgentIn o d e
-                      -> AgentIn o d e
+                      -> AgentIn o d
+                      -> AgentIn o d
     distributeDataAux allData ain = ain'
       where
         receiverId = aiId ain
@@ -208,10 +181,10 @@ distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE
 
         ain' = ain { aiData = ds' }
 
-collectAllData :: [(AgentId, AgentOut m o d e)] -> Map.Map AgentId [AgentData d]
+collectAllData :: [(AgentId, AgentOut m o d)] -> Map.Map AgentId [AgentData d]
 collectAllData aos = foldr collectAllDataAux Map.empty aos
   where
-    collectAllDataAux :: (AgentId, AgentOut m o d e)
+    collectAllDataAux :: (AgentId, AgentOut m o d)
                       -> Map.Map AgentId [AgentData d]
                       -> Map.Map AgentId [AgentData d]
     collectAllDataAux (senderId, ao) accData 

@@ -40,26 +40,30 @@ respondToContactWith state ain =
 -- Reactive Functions
 -------------------------------------------------------------------------------
 -- SUSCEPTIBLE
-sirAgentSuceptible :: RandomGen g => FrSIRAgent g
-sirAgentSuceptible = 
+sirAgentSuceptible :: RandomGen g => FrSIREnvironment -> FrSIRAgent g
+sirAgentSuceptible env = 
   transitionOnEvent 
     sirAgentInfectedEvent 
-    (readEnv $ sirAgentSusceptibleBehaviour) 
+    (sirAgentSusceptibleBehaviour env) 
     (const $ sirAgentInfected)
 
 sirAgentInfectedEvent :: RandomGen g => FrSIREventSource g ()
-sirAgentInfectedEvent = proc (ain, e) -> do
+sirAgentInfectedEvent = proc ain -> do
     isInfected <- arrM (\ain -> lift $ lift $ gotInfected ain) -< ain
     infectionEvent <- edge -< isInfected
     returnA -< infectionEvent
 
-sirAgentSusceptibleBehaviour :: RandomGen g => FrSIRAgentReadEnv g
-sirAgentSusceptibleBehaviour = proc (ain, e) -> do
+sirAgentSusceptibleBehaviour :: RandomGen g 
+                             => FrSIREnvironment 
+                             -> FrSIRAgent g
+sirAgentSusceptibleBehaviour _env = proc _ain -> do
     setAgentObservableS -< Susceptible
+    {-
     dataFlowOccasionallySrcSS 
             (1 / contactRate) 
             contactSS 
-            (randomAgentIdMsgSource (Contact Susceptible) True) -< (ain, e)
+            (randomAgentIdMsgSource env (Contact Susceptible) True) -< ain
+            -}
     returnA -< ()
 
 -- INFECTED
@@ -68,10 +72,10 @@ sirAgentInfected =
   transitionAfterExpSS 
     illnessDuration 
     illnessTimeoutSS 
-    (ignoreEnv $ sirAgentInfectedBehaviour) 
+    sirAgentInfectedBehaviour
     sirAgentRecovered
 
-sirAgentInfectedBehaviour :: RandomGen g => FrSIRAgentIgnoreEnv g
+sirAgentInfectedBehaviour :: RandomGen g => FrSIRAgent g
 sirAgentInfectedBehaviour = proc ain -> do
     setAgentObservableS -< Infected
     arrM (\ain -> lift $ respondToContactWith Infected ain) -< ain
@@ -79,13 +83,16 @@ sirAgentInfectedBehaviour = proc ain -> do
 
 -- RECOVERED
 sirAgentRecovered :: RandomGen g => FrSIRAgent g
-sirAgentRecovered = proc (ain, e) -> do
+sirAgentRecovered = proc _ -> do
   setAgentObservableS -< Recovered
-  returnA -< e
+  returnA -< ()
 
 -- INITIAL CASES
-sirAgentBehaviour :: RandomGen g => SIRState -> FrSIRAgent g
-sirAgentBehaviour Susceptible = sirAgentSuceptible
-sirAgentBehaviour Infected    = sirAgentInfected
-sirAgentBehaviour Recovered   = sirAgentRecovered
+sirAgentBehaviour :: RandomGen g 
+                  => SIRState 
+                  -> FrSIREnvironment 
+                  -> FrSIRAgent g
+sirAgentBehaviour Susceptible env = sirAgentSuceptible env
+sirAgentBehaviour Infected    _   = sirAgentInfected
+sirAgentBehaviour Recovered   _   = sirAgentRecovered
 -------------------------------------------------------------------------------

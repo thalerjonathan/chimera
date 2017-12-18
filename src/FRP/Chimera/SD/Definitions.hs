@@ -37,7 +37,6 @@ import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
-import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
 import FRP.Chimera.Simulation.Common 
 import FRP.Chimera.Simulation.Simulation
@@ -45,14 +44,13 @@ import FRP.Chimera.Simulation.Init
 
 data SDMsg          = Value Double deriving (Eq, Show)
 type SDStockState   = Double
-type SDEnvironment  = ()
 type StockId        = AgentId
 type FlowId         = AgentId
 
-type SDDef          = AgentDef Identity SDStockState SDMsg SDEnvironment 
-type SD             = AgentIgnoreEnv Identity SDStockState SDMsg SDEnvironment 
-type SDIn           = AgentIn SDStockState SDMsg SDEnvironment 
-type SDOut          = AgentOut Identity SDStockState SDMsg SDEnvironment 
+type SDDef          = AgentDef Identity SDStockState SDMsg 
+type SD             = Agent Identity SDStockState SDMsg 
+type SDIn           = AgentIn SDStockState SDMsg 
+type SDOut          = AgentOut Identity SDStockState SDMsg 
 type SDObservable   = AgentObservable SDStockState
 
 type Stock          = Double -> SD
@@ -64,7 +62,7 @@ createStock :: AgentId
             -> SDDef
 createStock stockId stockState stockBeh = AgentDef { 
     adId        = stockId
-  , adBeh       = ignoreEnv (stockBeh stockState)
+  , adBeh       = stockBeh stockState
   , adInitData  = []
   }
 
@@ -73,7 +71,7 @@ createFlow :: AgentId
            -> SDDef
 createFlow flowId flowBeh = AgentDef { 
     adId        = flowId
-  , adBeh       = ignoreEnv flowBeh
+  , adBeh       = flowBeh
   , adInitData  = []
   }
 
@@ -102,16 +100,13 @@ stockOutToS :: SF (StateT SDOut Identity) (Double, AgentId) ()
 stockOutToS = valueOutToS 
 
 runSD :: [SDDef] -> DTime -> Time -> [(Time, [SDObservable])]
-runSD initSdDefs dt t = map (\(t, outs, _) -> (t, outs)) sdObsEnv
+runSD initSdDefs dt t = runIdentity sdObsEnvM
   where
     sdObsEnvM = simulateTime 
                   initSdDefs 
-                  () 
                   params 
                   dt 
                   t
-
-    sdObsEnv = runIdentity sdObsEnvM
 
     -- SystemDynamics MUST NOT rely on RNGs at all, so no need to initialize it
     -- SystemDynamics MUST ABSOLUTELY only run Parllel and there is no need to shuffle the agents (=stocks)

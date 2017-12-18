@@ -18,7 +18,7 @@ import FRP.Chimera.Random.Pure
 import FRP.Chimera.Simulation.Init
 
 type AgentObservable o      = (AgentId, o)
-type SimulationStepOut o e  = (Time, [AgentObservable o], e)
+type SimulationStepOut o    = (Time, [AgentObservable o])
 
 shuffleAgents :: SimulationParams 
               -> [a]
@@ -37,20 +37,21 @@ shuffleAgents params as bs
     params' = params { simRng = g' }
     (as', bs') = unzip shuffledSfsIns
 
-newAgentIn :: AgentIn o d e -> AgentIn o d e
+newAgentIn :: AgentIn o d -> AgentIn o d
 newAgentIn oldIn  = 
   oldIn { 
-    aiStart = NoEvent
-  , aiData  = []
+    aiStart     = NoEvent
+  , aiData      = []
+  , aiRequestTx = NoEvent
   }
 
 observableAgents :: [AgentId] 
-                 -> [AgentOut m o d e] 
+                 -> [AgentOut m o d] 
                  -> [AgentObservable o]
 observableAgents ais aos = foldl observableAgents [] (zip ais aos)
   where
     observableAgents :: [AgentObservable o] 
-                     -> (AgentId, AgentOut m o d e) 
+                     -> (AgentId, AgentOut m o d) 
                      -> [AgentObservable o] 
     observableAgents acc (aid, ao) 
         | isJust mayObs = (aid, fromJust mayObs) : acc

@@ -21,20 +21,20 @@ import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.ParIteration
 
-type AgentObservableAggregator o e a  = SimulationStepOut o e -> a
+type AgentObservableAggregator o a  = SimulationStepOut o -> a
 
 {-
 -------------------------------------------------------------------------------
 -- RUNNING SIMULATION FROM AN OUTER LOOP
 -------------------------------------------------------------------------------
-simulateIOInit :: [AgentDef m o d e]
+simulateIOInit :: [AgentDef m o d]
                   -> e
                   -> SimulationParams e
-                  -> (ReactHandle () (SimulationStepOut s e)
+                  -> (ReactHandle () (SimulationStepOut o)
                           -> Bool
-                          -> SimulationStepOut s e
+                          -> SimulationStepOut o
                           -> IO Bool)
-                  -> IO (ReactHandle () (SimulationStepOut s e))
+                  -> IO (ReactHandle () (SimulationStepOut o))
 simulateIOInit adefs e params iterFunc = reactInit (return ()) iterFunc (simulate params adefs e)
 -------------------------------------------------------------------------------
 -}
@@ -44,32 +44,31 @@ simulateIOInit adefs e params iterFunc = reactInit (return ()) iterFunc (simulat
 -------------------------------------------------------------------------------
 
 simulateTime :: Monad m
-             => [AgentDef m o d e]
-             -> e
+             => [AgentDef m o d]
              -> SimulationParams
              -> DTime
              -> Time
-             -> m [SimulationStepOut o e]
-simulateTime adefs e params dt t = agrs
+             -> m [SimulationStepOut o]
+simulateTime adefs params dt t = agrs
   where
     steps = floor $ t / dt
     ticks = replicate steps ()
-    aossM = embed (simulate params adefs e) ticks
+    aossM = embed (simulate params adefs) ticks
     agrs = runReaderT aossM dt
 
   {-
-simulateTimeDeltas :: [AgentDef m o d e]
+simulateTimeDeltas :: [AgentDef m o d]
                    -> e
                    -> SimulationParams
                    -> [DTime]
-                   -> [SimulationStepOut s e]
+                   -> [SimulationStepOut o]
 simulateTimeDeltas adefs e params dts = 
   where
     sts = zip dts (repeat Nothing) 
     ticks = repeat ()
     embed (simulate params adefs e) ((), sts)
 
-simulateAggregateTimeDeltas :: [AgentDef m o d e]
+simulateAggregateTimeDeltas :: [AgentDef m o d]
                             -> e
                             -> SimulationParams
                             -> [DTime]
@@ -84,19 +83,18 @@ simulateAggregateTimeDeltas adefs e params dts aggrFun = seq agrs agrs -- optimi
 -}
 
 simulateAggregateTime :: Monad m
-                      => [AgentDef m o d e]
-                      -> e
+                      => [AgentDef m o d]
                       -> SimulationParams
                       -> DTime
                       -> Time
-                      -> AgentObservableAggregator o e a
+                      -> AgentObservableAggregator o a
                       -> m [a]
-simulateAggregateTime adefs e params dt t aggrFun = seq agrs agrs -- optimization
+simulateAggregateTime adefs params dt t aggrFun = seq agrs agrs -- optimization
   where
     steps = floor $ t / dt
     ticks = replicate steps ()
     agrSf = arr aggrFun
-    sf = simulate params adefs e >>> agrSf
+    sf = simulate params adefs >>> agrSf
 
     aossM = embed sf ticks
     agrs = runReaderT aossM dt
@@ -110,11 +108,11 @@ simulateAggregateTime adefs e params dt t aggrFun = seq agrs agrs -- optimizatio
 ------------------------------------------------------------------------------------------------------------------------
 simulateDebug :: forall s e m .
                 (Show s, Read s, Show e, Read e)
-                => [AgentDef m o d e]
+                => [AgentDef m o d]
                 -> e
                 -> SimulationParams e
                 -> Double
-                -> (Bool -> SimulationStepOut s e -> IO Bool)
+                -> (Bool -> SimulationStepOut o -> IO Bool)
                 -> IO ()
 simulateDebug adefs e params dt renderFunc = 
   simulateDebugInternal
@@ -126,11 +124,11 @@ simulateDebug adefs e params dt renderFunc =
 
 simulateDebugInternal :: forall s e m .
                         (Show s, Read s, Show e, Read e)
-                        => [AgentDef m o d e]
+                        => [AgentDef m o d]
                         -> e
                         -> SimulationParams e
                         -> (Bool -> IO (DTime, Maybe ()))
-                        -> (Bool -> SimulationStepOut s e -> IO Bool)
+                        -> (Bool -> SimulationStepOut o -> IO Bool)
                         -> IO ()
 simulateDebugInternal adefs e params inputFunc renderFunc = do
   bridge <- mkTitanCommTCPBridge
@@ -146,7 +144,7 @@ simulateDebugInternal adefs e params inputFunc renderFunc = do
 
 data FooPred s e = FooPred deriving (Read, Show)
 
-instance Pred (FooPred s e) () (SimulationStepOut s e) where
+instance Pred (FooPred s e) () (SimulationStepOut o) where
     evalPred _ _ _ _ = True
     -}
 ----------------------------------------------------------------------------------------------------------------------
@@ -154,10 +152,9 @@ instance Pred (FooPred s e) () (SimulationStepOut s e) where
 ----------------------------------------------------------------------------------------------------------------------
 simulate :: Monad m
          => SimulationParams
-         -> [AgentDef m o d e]
-         -> e
-         -> SF m () (SimulationStepOut o e)
-simulate params adefs e = simulatePar params asfs ais e 
+         -> [AgentDef m o d]
+         -> SF m () (SimulationStepOut o)
+simulate params adefs = simulatePar params asfs ais
   where
     asfs = map adBeh adefs
     idGen = simIdGen params

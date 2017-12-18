@@ -7,12 +7,7 @@ module FRP.Chimera
 
   , Agent
   , AgentRandom
-
-  , AgentConversationSender
-
-  , AgentPureBehaviour
-  , AgentPureBehaviourReadEnv
-  , AgentPureBehaviourNoEnv
+  , AgentTX
 
   , AgentDef (..)
   , AgentIn     -- only type constructor visible
@@ -39,9 +34,20 @@ module FRP.Chimera
   , onDataFlowFrom
   , onDataFlowType
 
-  , hasConversation
-  , conversation
-  , conversationEnd
+  , isRequestTx
+  , requestTxData
+  , requestTxIn
+  , requestTx
+  , acceptTX
+  , agentTXOut
+  , txDataOut
+  , commitTx
+  , commitTxWithCont
+  , abortTx
+  , txDataIn
+  , hasTxDataIn
+  , isCommitTX
+  , isAbortTX
 
   , agentObservable
   , updateAgentObservable
@@ -54,14 +60,8 @@ module FRP.Chimera
   , isRecursive
   , agentRecursions
 
-  , agentPure
-  , agentPureReadEnv
-  , agentPureIgnoreEnv
-
   -- FRP.Chimera.Agent.Monad
   , AgentMonadic
-  , AgentMonadicReadEnv
-  , AgentMonadicNoEnv
 
   , createAgentM
   , killM
@@ -74,9 +74,6 @@ module FRP.Chimera
   , onDataFlowMState
   , onDataFlowM
 
-  , conversationM
-  , conversationEndM
-
   , bypassEnvironment
 
   , updateAgentObservableM
@@ -85,18 +82,12 @@ module FRP.Chimera
   , agentObservableFieldM
 
   , agentMonadic
-  , agentMonadicReadEnv
-  , agentMonadicIgnoreEnv
 
   , ifThenElse
   , ifThenElseM
 
   -- FRP.Chimera.Agent.Reactive
-  , AgentIgnoreEnv
-  , AgentReadEnv
-
-  , ignoreEnv
-  , readEnv
+  -- NOTHING FOR NOW
 
   -- FRP.Chimera.Agent.Stream
   , dataFlowS
@@ -398,12 +389,10 @@ module FRP.Chimera
 
   -- FRP.Chimera.Simulation.Replication   
   , AgentDefReplicator
-  , EnvironmentReplicator
   , Replication
   
   , ReplicationConfig (..)
 
-  , defaultEnvReplicator
   , defaultAgentReplicator
 
   , runReplications
@@ -425,7 +414,6 @@ module FRP.Chimera
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
-import FRP.Chimera.Agent.Reactive
 import FRP.Chimera.Agent.Stream
 
 import FRP.Chimera.Environment.Continuous

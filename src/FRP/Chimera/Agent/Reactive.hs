@@ -2,12 +2,6 @@
 {-# LANGUAGE FlexibleContexts     #-}
 module FRP.Chimera.Agent.Reactive 
   (
-    AgentIgnoreEnv
-  , AgentReadEnv
-
-  , ignoreEnv
-  , readEnv
-
   {-
   , doOnce
   , doOnceR
@@ -21,24 +15,10 @@ module FRP.Chimera.Agent.Reactive
   -}
   ) where
     
-import Control.Monad.State.Strict
-import FRP.BearRiver
+--import Control.Monad.State.Strict
+--import FRP.BearRiver
 
-import FRP.Chimera.Agent.Interface
-
-type AgentIgnoreEnv m o d e = SF (StateT (AgentOut m o d e) m) (AgentIn o d e) ()
-type AgentReadEnv m o d e   = SF (StateT (AgentOut m o d e) m) (AgentIn o d e, e) () 
-
-ignoreEnv :: Monad m => AgentIgnoreEnv m o d e -> Agent m o d e 
-ignoreEnv f = proc (ain, e) -> do
-  _ <- f -< ain
-  returnA -< e
-
-readEnv :: Monad m => AgentReadEnv m o d e -> Agent m o d e
-readEnv f = proc (ain, e) -> do
-  _ <- f -< (ain, e)
-  returnA -< e
--------------------------------------------------------------------------------
+--import FRP.Chimera.Agent.Interface
 
 -------------------------------------------------------------------------------
 -- Actions

@@ -9,8 +9,6 @@ module Model
   , FrSIRAgentMonad
   
   , FrSIRAgent
-  , FrSIRAgentReadEnv
-  , FrSIRAgentIgnoreEnv
   , FrSIRAgentDef
   , FrSIRAgentIn
   , FrSIRAgentOut
@@ -46,17 +44,15 @@ type FrSIREnvironment = [AgentId]
 
 type FrSIRAgentMonad g = (Rand g)
 
-type FrSIRAgentDef g              = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgent g                 = AgentRandom FrSIRAgentState FrSIRData FrSIREnvironment g
-type FrSIRAgentReadEnv g          = AgentReadEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgentIgnoreEnv g        = AgentIgnoreEnv (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgentOut g              = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIRAgentDef g              = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData 
+type FrSIRAgent g                 = AgentRandom g FrSIRAgentState FrSIRData
+type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRData
+type FrSIRAgentOut g              = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
 type FrSIRAgentObservable         = AgentObservable FrSIRAgentState
 
-type FrSIREventSource g a         = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment a
-type FrSIRReplicationConfig g     = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
-type FrSIRAgentDefReplicator g    = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREnvironment
+type FrSIREventSource g a         = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData a
+type FrSIRReplicationConfig g     = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
+type FrSIRAgentDefReplicator g    = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
