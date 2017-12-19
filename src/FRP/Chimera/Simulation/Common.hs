@@ -5,7 +5,6 @@ module FRP.Chimera.Simulation.Common
   , SimulationStepOut
 
   , shuffleAgents
-  , newAgentIn
   , observableAgents
   ) where
 
@@ -36,14 +35,6 @@ shuffleAgents params as bs
 
     params' = params { simRng = g' }
     (as', bs') = unzip shuffledSfsIns
-
-newAgentIn :: AgentIn o d -> AgentIn o d
-newAgentIn oldIn  = 
-  oldIn { 
-    aiStart     = NoEvent
-  , aiData      = []
-  , aiRequestTx = NoEvent
-  }
 
 observableAgents :: [AgentId] 
                  -> [AgentOut m o d] 

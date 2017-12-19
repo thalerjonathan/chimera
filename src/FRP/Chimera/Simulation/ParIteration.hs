@@ -5,9 +5,6 @@ module FRP.Chimera.Simulation.ParIteration
     simulatePar
   ) where
 
-import Control.Concurrent.STM.TVar
-import Control.Monad.Trans.MSF.Reader
-import Control.Monad.Trans.MSF.State
 import Control.Parallel.Strategies
 import qualified Data.Map as Map
 import FRP.BearRiver
@@ -16,7 +13,7 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Running
-import FRP.Chimera.Simulation.Transaction
+--import FRP.Chimera.Simulation.Transaction
 
 -- | Steps the simulation using a parallel update-strategy. 
 -- Conversations and Recursive Simulation is NOT possible using this strategy.
@@ -59,6 +56,8 @@ simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
       -- SHUFFLING makes a difference regarding the order of the
       -- transactions, but ignoring shuffling for now
 
+      -- TODO: problem is that runTransactions is currently not 
+      -- keeping the ordering of the passed sfs/outs
       -- runTransactions -< 
 
       -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
@@ -113,9 +112,9 @@ nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
             | otherwise = (sf : asfsAcc, newIn : ainsAcc) 
           where
             killAgent = isEvent $ aoKill newOut
-            newIn = newAgentIn oldIn
+            newIn = agentIn (aiId oldIn) (aiIdGen oldIn) 
 
-handleCreateAgents :: TVar Int
+handleCreateAgents :: IdGen
                    -> AgentOut m o d
                    -> ([Agent m o d], [AgentIn o d])
                    -> ([Agent m o d], [AgentIn o d])

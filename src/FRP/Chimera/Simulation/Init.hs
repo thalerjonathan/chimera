@@ -1,6 +1,7 @@
 module FRP.Chimera.Simulation.Init 
   (
-    SimulationParams (..)
+    IdGen
+  , SimulationParams (..)
 
   , initRng
   , initSimulation
@@ -13,11 +14,13 @@ import Control.Monad.Random
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Internal
 
+type IdGen = TVar Int
+
 data SimulationParams = SimulationParams 
   {
     simShuffleAgents  :: Bool
   , simRng            :: StdGen
-  , simIdGen          :: TVar Int
+  , simIdGen          :: IdGen
   }
 
 initSimulation :: Bool

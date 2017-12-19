@@ -4,22 +4,23 @@ module FRP.Chimera.Simulation.Transaction
     runTransactions
   ) where
 
-import Control.Monad.Trans.MSF.Reader
 import Data.Maybe
 import qualified Data.Map as Map
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Simulation.Init 
 import FRP.Chimera.Simulation.Running
 
 -- TODO: refactor code, looks VERY ugly atm
 
 -- TX are executed sequentially
 runTransactions :: Monad m
-                => SF m
+                => IdGen
+                -> SF m
                       ([(AgentId, AgentOut m o d)], [Agent m o d])
                       ([(AgentId, AgentOut m o d)], [Agent m o d])
-runTransactions = proc (aios, sfs) -> do
+runTransactions idGen = proc (aios, sfs) -> do
     let els = zip aios sfs
     let m = foldr (\((aid, ao), sf) m' -> Map.insert aid (ao, sf) m') Map.empty els
     m' <- runTransactionsAux -< (els, m)
@@ -29,7 +30,7 @@ runTransactions = proc (aios, sfs) -> do
     -- when there are still TX requests then run them recursively
     let hasTx = any (\(_, (ao, _)) -> isEvent $ aoRequestTx ao) ml
     if hasTx 
-      then runTransactions -< aiosMsfs
+      then runTransactions idGen -< aiosMsfs
       else returnA -< aiosMsfs
 
   where
@@ -70,7 +71,7 @@ runTransactions = proc (aios, sfs) -> do
         else (do
           let (_, rSf0) = fromJust mayReceiver
           
-          let rAin = (agentIn rAid) { aiRequestTx = Event (sAid, d) }
+          let rAin = (agentIn rAid idGen) { aiRequestTx = Event (sAid, d) }
 
           -- ignoring the sf of this run makes it as it has never happened,
           (rAo', _) <- runAgentWithDt 0 -< (rSf0, rAin) 

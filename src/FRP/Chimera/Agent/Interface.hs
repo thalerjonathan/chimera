@@ -363,15 +363,9 @@ startingAgent adefs idGen = (sfs, ains)
     sfs = map adBeh adefs 
 
 startingAgentInFromAgentDef :: TVar Int -> AgentDef m o d -> AgentIn o d
-startingAgentInFromAgentDef idGen ad = 
-  AgentIn { aiId              = adId ad
-          , aiData            = adInitData ad
-          , aiRequestTx       = NoEvent
-          , aiStart           = Event ()
-          , aiRec             = NoEvent
-          , aiRecInitAllowed  = True
-          , aiIdGen           = idGen 
-          }
+startingAgentInFromAgentDef idGen ad = ai { aiData = adInitData ad }
+  where
+    ai = agentIn (adId ad) idGen 
 
 agentIn :: AgentId -> TVar Int -> AgentIn o d 
 agentIn aid idGen = AgentIn 
