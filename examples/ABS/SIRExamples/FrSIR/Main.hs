@@ -3,7 +3,7 @@ module Main
     main
 
   , runFrSIRStepsAndWriteToFile
-  , runFrSIRDeltasAndWriteToFile
+  -- , runFrSIRDeltasAndWriteToFile
   , runFrSIRReplicationsAndWriteToFile
   ) where
 
@@ -61,6 +61,7 @@ runFrSIRStepsAndWriteToFile = do
 
   writeSirDynamicsFile fileName dt 0 dynamics
 
+  {-
 runFrSIRDeltasAndWriteToFile :: IO ()
 runFrSIRDeltasAndWriteToFile = do
   params <- initSimulation shuffleAgents (Just rngSeed)
@@ -72,13 +73,14 @@ runFrSIRDeltasAndWriteToFile = do
   let deltasAfter = replicate 100 dt
   let deltas = deltasZero ++ deltasBefore ++ deltasAfter
 
-  let dynamics = [] -- simulateAggregateTimeDeltas initAdefs params deltas aggregate
+  let dynamics = simulateAggregateTimeDeltas initAdefs params deltas aggregate
   let fileName = "frSIRDynamics_" 
                   ++ show agentCount ++ "agents_" 
                   ++ show t ++ "time_"
                   ++ show dt ++ "dt.m"
 
   writeSirDynamicsFile fileName dt 0 dynamics
+-}
 
 runFrSIRReplicationsAndWriteToFile :: IO ()
 runFrSIRReplicationsAndWriteToFile = do
@@ -89,10 +91,9 @@ runFrSIRReplicationsAndWriteToFile = do
   g <- getStdGen
 
   let rc = replCfg env
-  let replicationDynamics = runReplicationsWithAggregation initAdefs params dt t replCfg aggregate
-  let randMs = sirDynamicsReplMean replicationDynamics
-  --let dynamics = mapM (\rM -> evalRand rM g) randMs -- TODO: use different RNGs
-  let dynamics = randMs
+  let randMs = runReplicationsWithAggregation initAdefs params dt t rc aggregate
+  let replicationDynamics = mapM (\rM -> evalRand rM g) randMs -- TODO: use different RNGs
+  let dynamics = sirDynamicsReplMean replicationDynamics
   
   let fileName = "frSIRDynamics_" 
                   ++ show agentCount ++ "agents_" 

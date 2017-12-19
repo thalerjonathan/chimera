@@ -17,6 +17,8 @@ import FRP.Chimera.Simulation.Common
 type MessageAccumulator m   = Map.Map AgentId [AgentMessage m]
 type AgentInMap s m e       = Map.Map AgentId (AgentIn s m e)
 
+-- NOTE: this code is deprecated!
+
 -- | Steps the simulation using a sequential update-strategy. 
 -- Conversations and Recursive Simulation is only possible using this strategy.
 -- In this strategy each agents SF is run after another where 

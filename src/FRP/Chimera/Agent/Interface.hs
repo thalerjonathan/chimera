@@ -65,6 +65,7 @@ module FRP.Chimera.Agent.Interface
   , startingAgent
   , startingAgentIn
   , startingAgentInFromAgentDef
+  , agentIn
   ) where
 
 import Data.List
@@ -95,6 +96,7 @@ data AgentDef m o d = AgentDef
   , adInitData     :: ![AgentData d]     -- AgentId identifies sender
   }
 
+-- TODO: remove IdGen, it is a pain in the ass
 data AgentIn o d = AgentIn 
   { aiId              :: !AgentId
   , aiIdGen           :: !(TVar Int)
@@ -370,6 +372,17 @@ startingAgentInFromAgentDef idGen ad =
           , aiRecInitAllowed  = True
           , aiIdGen           = idGen 
           }
+
+agentIn :: AgentId -> TVar Int -> AgentIn o d 
+agentIn aid idGen = AgentIn 
+  { aiId              = aid
+  , aiIdGen           = idGen
+  , aiStart           = NoEvent
+  , aiData            = []
+  , aiRequestTx       = NoEvent
+  , aiRec             = NoEvent
+  , aiRecInitAllowed  = False
+  }
 
 -------------------------------------------------------------------------------
 -- PRIVATE

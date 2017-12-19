@@ -5,8 +5,6 @@ module FRP.Chimera.Simulation.ParIteration
     simulatePar
   ) where
 
---import Data.Maybe
-
 import Control.Concurrent.STM.TVar
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.State
@@ -15,9 +13,10 @@ import qualified Data.Map as Map
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Simulation.Init
---import FRP.Chimera.Simulation.Internal
 import FRP.Chimera.Simulation.Common
+import FRP.Chimera.Simulation.Init
+import FRP.Chimera.Simulation.Running
+import FRP.Chimera.Simulation.Transaction
 
 -- | Steps the simulation using a parallel update-strategy. 
 -- Conversations and Recursive Simulation is NOT possible using this strategy.
@@ -57,12 +56,18 @@ simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
       -- iterate agents in parallel
       (sfs', outs) <- runAgents -< (sfs, ins)
 
+      -- SHUFFLING makes a difference regarding the order of the
+      -- transactions, but ignoring shuffling for now
+
+      -- runTransactions -< 
+
       -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
       let (sfs'', ins') = nextStep ins outs sfs'
       -- create observable outputs
       let obs = observableAgents (map aiId ins) outs
 
-      -- NOTE: ignoring shuffling for now
+      
+
       {-
       -- TODO: do NOT shuffle => must not make a difference
       -- NOTE: shuffling may seem strange in parallel but this will ensure random message-distribution when required
@@ -72,45 +77,6 @@ simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
       t <- time -< ()
 
       returnA -< ((t, obs), (params, sfs'', ins'))
-
--- deep magic going on here... thx to Manuel Bärenz and Ivan Perez
--- NOTE: we can also run agents with a dt of 0 here if required
-runAgents :: Monad m 
-          => SF m 
-              ([Agent m o d], [AgentIn o d]) 
-              ([Agent m o d], [AgentOut m o d])
-runAgents = readerS $ proc (dt, (sfs, ins)) -> do
-    let asIns        = zipWith (\sf ain -> (dt, (sf, ain))) sfs ins
-    
-    arets <- mapMSF (runReaderS runAgent) -< asIns
-    let (aos, sfs') = unzip arets
-    returnA -< (sfs', aos)
-
-  where
-    runAgent :: Monad m 
-             => SF m 
-                  (Agent m o d, AgentIn o d)
-                  (AgentOut m o d, Agent m o d)
-    runAgent = runStateSF_ runAgentAux agentOut
-      where
-        runAgentAux :: Monad m
-                    => SF (StateT (AgentOut m o d) m) 
-                        (Agent m o d, AgentIn o d) 
-                        (Agent m o d)
-        runAgentAux = arrM (\(sf, ain) -> do
-          -- returning (), as we are only interested in the effects on agentout
-          (_, sf') <- unMSF sf ain
-          return sf')
-
-    runStateSF_ :: Monad m => SF (StateT s m) a b -> s -> SF m a (s, b)
-    runStateSF_ sf = runStateS_ $ liftMSFPurer commute sf
-
-    -- deep magic going on as well...
-    commute :: Monad m => ReaderT r (StateT s m) a -> StateT s (ReaderT r m) a
-    commute rt = 
-      StateT (\s -> 
-        ReaderT (\r -> let st = runReaderT rt r
-                        in runStateT st s))
 
 nextStep :: [AgentIn o d]
          -> [AgentOut m o d]
