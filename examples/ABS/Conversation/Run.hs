@@ -17,6 +17,8 @@ shuffleAgents = True
 
 -- TODO: repair, conversations not yet working
 
+-- TODO: replace by ABSTX
+
 runConversationSteps :: IO ()
 runConversationSteps = 
     do

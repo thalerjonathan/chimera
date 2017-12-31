@@ -77,7 +77,7 @@ runTransactions idGen = proc (aios, sfs) -> do
           (rAo', _) <- runAgentWithDt 0 -< (rSf0, rAin) 
 
           let acceptTxEvt = aoAcceptTx rAo'
-          if isEvent acceptTxEvt
+          if not $ isEvent acceptTxEvt
             -- the request has been turned down, no TX
             then (do
               -- transaction request turned down / ignored by receiver
