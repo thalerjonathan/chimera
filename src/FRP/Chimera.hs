@@ -449,23 +449,14 @@ import FRP.Chimera.Simulation.Common
 ------------------------------------------------------------------------------------------------------------------------
 -- TODOs
 ------------------------------------------------------------------------------------------------------------------------
+- we have a terrible memory leak at the moment...
 
-- write a agentBehaviour SF which can 'freeze' the state of an agent so we don't have do drag it always in AgentIn/Out around?
-  , e.g. a new SF implementation: agent: agentBehaviour :: s -> SF (AgentIn e s) -> SF (AgentOut e). allows to get rid of state in agentin. agentout state then simply becomes oberservable state
-  , -> what happens then in the case of a conversation? the receiving agent cannot change the state? We would need to run the conversation within the original agentbehaviour 
-
-- the problem of output at t=0? PROBLEM: after first iteration, SFs have a different signature which causes a problem, need a thorough research into 
-
-- BUG: if two agents have the same id, their states will get mixed-up when using the Sequential updating
-  
-- different build targets: with/without time-traveling, gloss rendering
-  - add HOW-TO of Chimera examples running on github in a sandbox: need yampa with exposed core, haskell-titan, install Chimera
+- different build targets: gloss rendering
+  - add HOW-TO of Chimera examples running on github in a sandbox
   
   - clean-up, can all be done in one rush through ALL the files:
     -> STYLE, INDENTATIONS & COMMENTS:		https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
     -> WARNINGS:							no warnings with -Wall -Werror
-
-- replace simulatePar with yampa pSwitch instead of own SF
 
 - allow to be able to stop simulation when iteration-function returns True
 
