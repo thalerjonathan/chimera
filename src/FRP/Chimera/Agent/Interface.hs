@@ -7,6 +7,8 @@ module FRP.Chimera.Agent.Interface
 
   , Agent
   , AgentRandom
+  , AgentMonad
+  , AgentRandomMonad
   , AgentTX
 
   , AgentDef (..)
@@ -84,8 +86,12 @@ type DataFilter d         = AgentData d -> Bool
 
 -- TODO: should we instead return the observable explicitly as a (Maybe o) instead
 -- of having it inside the agentout?
-type Agent m o d          = SF (StateT (AgentOut m o d) m) (AgentIn o d) ()
-type AgentRandom g o d    = Agent (Rand g) o d 
+type AgentMonad m o d       = StateT (AgentOut m o d) m
+type AgentRandomMonad g o d = AgentMonad (Rand g) o d 
+
+type Agent m o d            = SF (AgentMonad m o d) (AgentIn o d) ()
+type AgentRandom g o d      = SF (AgentRandomMonad g o d) (AgentIn o d) ()
+
 -- TODO: should we prevent envrionment-modification in TX-functions? 
 -- can achieve this by replacing m by Identity monad
 type AgentTX m o d        = SF m (AgentTXIn d) (AgentTXOut m o d)

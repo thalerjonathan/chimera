@@ -44,6 +44,8 @@ type FrSIRAgentState  = SIRState
 type FrSIREnvironment = [AgentId]
 
 type FrSIRAgentMonad g         = Rand g
+-- TODO: seems not to work as intended...
+--type FrSIRAgentMonad g         = AgentRandomMonad g FrSIRAgentState FrSIRData
 
 type FrSIRAgentDef g           = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData 
 type FrSIRAgent g              = AgentRandom g FrSIRAgentState FrSIRData

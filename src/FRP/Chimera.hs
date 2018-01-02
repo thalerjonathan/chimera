@@ -7,6 +7,8 @@ module FRP.Chimera
 
   , Agent
   , AgentRandom
+  , AgentMonad
+  , AgentRandomMonad
   , AgentTX
 
   , AgentDef (..)
