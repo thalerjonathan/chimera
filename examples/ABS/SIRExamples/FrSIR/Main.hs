@@ -25,13 +25,13 @@ dt :: DTime
 dt = 0.1
 
 t :: DTime
-t = 150
+t = 20
 
 agentCount :: Int
-agentCount = 1000
+agentCount = 100
 
 numInfected :: Int
-numInfected = 10
+numInfected = 1
 
 main :: IO () 
 main = runFrSIRStepsAndWriteToFile

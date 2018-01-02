@@ -198,7 +198,6 @@ agentMonadic :: Monad m
 agentMonadic f ao = proc ain -> do
   age <- time -< ()
   let _ao' = runState (f age ain) ao  -- TODO: put ao' using state-monad
-
   returnA -< ()
 
 -------------------------------------------------------------------------------

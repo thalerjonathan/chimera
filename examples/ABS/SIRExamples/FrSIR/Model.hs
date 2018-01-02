@@ -27,32 +27,33 @@ module Model
   ) where
 
 import Control.Monad.Random
+
 import FRP.Chimera
 
 -------------------------------------------------------------------------------
 -- DOMAIN-SPECIFIC AGENT-DEFINITIONS
 -------------------------------------------------------------------------------
-data SIRState = Susceptible | Infected | Recovered deriving (Eq, Show)
-data FrSIRData = Contact SIRState deriving (Eq, Show)
+data SIRState         = Susceptible | Infected | Recovered deriving (Eq, Show)
+data FrSIRData        = Contact SIRState deriving (Eq, Show)
 
-type FrSIRAgentState = SIRState
+type FrSIRAgentState  = SIRState
 
 -- NOTE: here we are not interested in the network and their influences, instead we go for a fully-connected network
 -- We could implement this using Network () as the environment type but the underlying graph-library (FGL) cannot
 -- deal with big (>10.000 nodes) complete networks as it sucks up massive memory. 
 type FrSIREnvironment = [AgentId]
 
-type FrSIRAgentMonad g = (Rand g)
+type FrSIRAgentMonad g         = Rand g
 
-type FrSIRAgentDef g              = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData 
-type FrSIRAgent g                 = AgentRandom g FrSIRAgentState FrSIRData
-type FrSIRAgentIn                 = AgentIn FrSIRAgentState FrSIRData
-type FrSIRAgentOut g              = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
-type FrSIRAgentObservable         = AgentObservable FrSIRAgentState
+type FrSIRAgentDef g           = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData 
+type FrSIRAgent g              = AgentRandom g FrSIRAgentState FrSIRData
+type FrSIRAgentIn              = AgentIn FrSIRAgentState FrSIRData
+type FrSIRAgentOut g           = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
+type FrSIRAgentObservable      = AgentObservable FrSIRAgentState
 
-type FrSIREventSource g a         = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData a
-type FrSIRReplicationConfig g     = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
-type FrSIRAgentDefReplicator g    = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
+type FrSIREventSource g a      = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData a
+type FrSIRReplicationConfig g  = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
+type FrSIRAgentDefReplicator g = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

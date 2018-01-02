@@ -56,14 +56,13 @@ sirAgentInfectedEvent = proc ain -> do
 sirAgentSusceptibleBehaviour :: RandomGen g 
                              => FrSIREnvironment 
                              -> FrSIRAgent g
-sirAgentSusceptibleBehaviour _env = proc _ain -> do
+sirAgentSusceptibleBehaviour env = proc ain -> do
     setAgentObservableS -< Susceptible
-    {-
-    dataFlowOccasionallySrcSS 
+    ds <- dataFlowOccasionallySrcSS 
             (1 / contactRate) 
             contactSS 
             (randomAgentIdMsgSource env (Contact Susceptible) True) -< ain
-            -}
+    dataFlowsS -< ds
     returnA -< ()
 
 -- INFECTED

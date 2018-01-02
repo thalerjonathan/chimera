@@ -91,6 +91,8 @@ module FRP.Chimera
 
   -- FRP.Chimera.Agent.Stream
   , dataFlowS
+  , dataFlowsS
+  
   , agentObservableS
   , setAgentObservableS
   
