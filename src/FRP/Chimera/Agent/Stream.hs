@@ -1,4 +1,3 @@
-{-# LANGUAGE Arrows               #-}
 {-# LANGUAGE FlexibleContexts     #-}
 module FRP.Chimera.Agent.Stream 
   (

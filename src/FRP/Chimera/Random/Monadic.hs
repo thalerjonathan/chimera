@@ -17,7 +17,7 @@ randomBoolM p = getRandomR (0.0, 1.0) >>= (\r -> return $ p >= r)
 
 -- NOTE: THIS CODE INSPIRED BY Euterpea-1.0.0 (I didn't want to create dependencies and their implementation seems neat and tidy)
 randomExpM :: MonadRandom m => Double -> m Double
-randomExpM lambda = avoidM 0 >>= (\r -> return $ ((-log r) / lambda))
+randomExpM lambda = avoidM 0 >>= (\r -> return $ (-log r) / lambda)
 
 randomElemM :: MonadRandom m => [a] -> m a
 randomElemM as = do
@@ -29,7 +29,7 @@ randomElemM as = do
 avoidM :: (Random a, Eq a, MonadRandom m) => a -> m a
 avoidM x = do
   r <- getRandom
-  if (r == x) 
+  if r == x
     then avoidM x
     else return r
 

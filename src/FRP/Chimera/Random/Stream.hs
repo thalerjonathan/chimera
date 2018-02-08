@@ -52,9 +52,9 @@ randomExpS_ = proc lambda -> do
   returnA -< ((-log r) / lambda)
 
 randomRandS :: MonadRandom m => m a -> MSF m () a
-randomRandS r = arrM_ r
+randomRandS r = arrM_
 
 randomRandS_ :: MonadRandom m => MSF m (m a) a
 randomRandS_ = proc r -> do
-  a <- arrM (\r -> r) -< r
+  a <- arrM id -< r
   returnA -< a

@@ -1,4 +1,3 @@
-{-# LANGUAGE Arrows #-}
 module FRP.Chimera.Agent.Interface 
   (
     AgentId
@@ -80,26 +79,26 @@ import FRP.BearRiver
 
 import FRP.Chimera.Simulation.Internal
 
-type AgentId              = Int
-type AgentData d          = (AgentId, d)
-type DataFilter d         = AgentData d -> Bool
+type AgentId       = Int
+type DataFlow d    = (AgentId, d)
+type DataFilter d  = DataFlow d -> Bool
 
--- TODO: should we instead return the observable explicitly as a (Maybe o) instead
--- of having it inside the agentout?
-type AgentMonad m o d       = StateT (AgentOut m o d) m
-type AgentRandomMonad g o d = AgentMonad (Rand g) o d 
-
-type Agent m o d            = SF (AgentMonad m o d) (AgentIn o d) ()
-type AgentRandom g o d      = SF (AgentRandomMonad g o d) (AgentIn o d) ()
+-- an agent is simply a SF with a generic computational context, which depends on the model
+-- note that it is important that we do not fix m e.g. to StateT to allow an environment
+-- or adding a RandT for allowing randomness but we leave this to the model implementer, otherwise
+-- we would burden the API with details (type of the state in StateT, type of the RandomNumber generator 
+-- in RandT) they may not need e.g. there are models which do not need a global read/write environment
+-- or event don't use randonmness (e.g. SD emulation)
+type Agent m o d = SF m (AgentIn o d) (AgentOut o d)
 
 -- TODO: should we prevent envrionment-modification in TX-functions? 
 -- can achieve this by replacing m by Identity monad
-type AgentTX m o d        = SF m (AgentTXIn d) (AgentTXOut m o d)
+type AgentTX m o d = SF m (AgentTXIn d) (AgentTXOut m o d)
 
 data AgentDef m o d = AgentDef
   { adId           :: !AgentId
   , adBeh          :: Agent m o d
-  , adInitData     :: ![AgentData d]     -- AgentId identifies sender
+  , adInitData     :: ![DataFlow d]     -- AgentId identifies sender
   }
 
 -- TODO: remove IdGen, it is a pain in the ass
@@ -107,20 +106,20 @@ data AgentIn o d = AgentIn
   { aiId              :: !AgentId
   , aiIdGen           :: !(TVar Int)
   , aiStart           :: !(Event ())
-  , aiData            :: ![AgentData d]     -- AgentId identifies sender
+  , aiData            :: ![DataFlow d]     -- AgentId identifies sender
   
-  , aiRequestTx       :: !(Event (AgentData d))
+  , aiRequestTx       :: !(Event (DataFlow d))
 
-  , aiRec             :: !(Event [(Maybe o)])
+  , aiRec             :: !(Event [Maybe o])
   , aiRecInitAllowed  :: !Bool
   }
 
 data AgentOut m o d = AgentOut 
   { aoKill              :: !(Event ())
   , aoCreate            :: ![AgentDef m o d]
-  , aoData              :: ![AgentData d]           -- AgentId identifies receiver
+  , aoData              :: ![DataFlow d]           -- AgentId identifies receiver
 
-  , aoRequestTx         :: !(Event (AgentData d, AgentTX m o d))
+  , aoRequestTx         :: !(Event (DataFlow d, AgentTX m o d))
   , aoAcceptTx          :: !(Event (d, AgentTX m o d))
 
   , aoObservable        :: !(Maybe o)             -- OPTIONAL observable state
@@ -172,7 +171,7 @@ onStart :: (AgentOut m o d -> AgentOut m o d)
         -> AgentIn o d 
         -> AgentOut m o d 
         -> AgentOut m o d
-onStart evtHdl ai ao = onEvent evtHdl startEvt ao
+onStart evtHdl ai = onEvent evtHdl startEvt
   where
     startEvt = aiStart ai
 
@@ -185,17 +184,17 @@ onEvent evtHdl evt ao = event ao (\_ -> evtHdl ao) evt
 -------------------------------------------------------------------------------
 -- MESSAGING / DATA-FLOW
 -------------------------------------------------------------------------------
-dataFlow :: AgentData d -> AgentOut m o d -> AgentOut m o d
+dataFlow :: DataFlow d -> AgentOut m o d -> AgentOut m o d
 dataFlow d ao = ao { aoData = d : aoData ao }
 
 dataFlowTo :: AgentId -> d -> AgentOut m o d -> AgentOut m o d
-dataFlowTo aid msg ao = dataFlow (aid, msg) ao
+dataFlowTo aid msg = dataFlow (aid, msg)
 
-dataFlows :: [AgentData d] -> AgentOut m o d ->  AgentOut m o d
+dataFlows :: [DataFlow d] -> AgentOut m o d ->  AgentOut m o d
 dataFlows msgs ao = foldr dataFlow ao msgs
 
 broadcastDataFlow :: d -> [AgentId] -> AgentOut m o d -> AgentOut m o d
-broadcastDataFlow d receiverIds ao = dataFlows datas ao
+broadcastDataFlow d receiverIds = dataFlows datas
   where
     n = length receiverIds
     ds = replicate n d
@@ -204,39 +203,39 @@ broadcastDataFlow d receiverIds ao = dataFlows datas ao
 hasDataFlow :: Eq d => d -> AgentIn o d -> Bool
 hasDataFlow d ai = Data.List.any ((==d) . snd) (aiData ai)
 
-onDataFlow :: (AgentData d -> acc -> acc) -> AgentIn o d -> acc -> acc
-onDataFlow dataHdl ai a = foldr (\d acc'-> dataHdl d acc') a ds
+onDataFlow :: (DataFlow d -> acc -> acc) -> AgentIn o d -> acc -> acc
+onDataFlow dataHdl ai a = foldr dataHdl a ds
   where
     ds = aiData ai
 
 onFilterDataFlow :: DataFilter d 
-                 -> (AgentData d -> acc -> acc) 
+                 -> (DataFlow d -> acc -> acc) 
                  -> AgentIn o d 
                  -> acc 
                  -> acc
 onFilterDataFlow dataFilter dataHdl ai acc =
-    foldr (\d acc'-> dataHdl d acc') acc dsFiltered
+    foldr dataHdl acc dsFiltered
   where
     ds = aiData ai
     dsFiltered = filter dataFilter ds
 
 onDataFlowFrom :: AgentId 
-               -> (AgentData d -> acc -> acc) 
+               -> (DataFlow d -> acc -> acc) 
                -> AgentIn o d 
                -> acc 
                -> acc
 onDataFlowFrom senderId datHdl ai acc = 
-    onFilterDataFlow filterBySender datHdl ai acc
+    onFilterDataFlow filterBySender datHdl
   where
-    filterBySender = (\(senderId', _) -> senderId == senderId' )
+    filterBySender (senderId', _) = senderId == senderId'
 
 onDataFlowType :: (Eq d) 
                => d 
-               -> (AgentData d -> acc -> acc) 
+               -> (DataFlow d -> acc -> acc) 
                -> AgentIn o d 
                -> acc 
                -> acc
-onDataFlowType d datHdl ai acc = onFilterDataFlow filterByType datHdl ai acc
+onDataFlowType d datHdl ai acc = onFilterDataFlow filterByType datHdl
   where
     filterByType = (==d) . snd 
 
@@ -253,7 +252,7 @@ updateAgentObservable f ao =
   ao { aoObservable = Just $ f $ fromJust $ aoObservable ao }
 
 setAgentObservable :: o -> AgentOut m o d -> AgentOut m o d
-setAgentObservable o ao = updateAgentObservable (const o) ao
+setAgentObservable o ao = updateAgentObservable (const o)
 
 -------------------------------------------------------------------------------
 -- Transactions
@@ -262,14 +261,14 @@ setAgentObservable o ao = updateAgentObservable (const o) ao
 isRequestTx :: AgentIn o d -> Bool
 isRequestTx = isEvent . aiRequestTx
 
-requestTxData :: AgentIn o d -> AgentData d
+requestTxData :: AgentIn o d -> DataFlow d
 requestTxData = fromEvent . aiRequestTx
 
-requestTxIn :: AgentIn o d -> Event (AgentData d)
+requestTxIn :: AgentIn o d -> Event (DataFlow d)
 requestTxIn = aiRequestTx
 
 -- AgentOut TX related
-requestTx :: AgentData d 
+requestTx :: DataFlow d 
           -> AgentTX m o d
           -> AgentOut m o d 
           -> AgentOut m o d
