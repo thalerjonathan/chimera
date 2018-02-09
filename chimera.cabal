@@ -4,7 +4,7 @@ Build-Type:       Simple
 cabal-version:    >= 1.2
 author:           Jonathan Thaler
 maintainer:       Jonathan Thaler (thaler.jonathan@gmail.com)
-category:         Agent-Based Simulation, System-Dynamics, Discrete Event Simulation, FRP
+category:         Agent-Based Simulation, System-Dynamics, FRP
 synopsis:         Library for programming hybrid agent-based simulation in a pure functional, reactive style using Monadic Stream Functions
 
 description:      Domain-specific language embedded in Haskell for programming hybrid agent-based simulation (mixed discrete-time and continuous-time) systems.

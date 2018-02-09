@@ -1,12 +1,9 @@
-module Main 
-  ( 
-    main
-  ) where
+module Main where
 
 import Data.List
 
 import FRP.Chimera
-import FRP.Yampa
+import FRP.BearRiver
 
 import Init
 import Model

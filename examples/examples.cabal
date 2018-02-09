@@ -1,7 +1,16 @@
-name:              examples
-version:           1.0
-Build-Type:        Simple
-cabal-version:     >= 1.2
+name:             examples
+version:          0.1
+Build-Type:       Simple
+cabal-version:    >= 1.2
+author:           Jonathan Thaler
+maintainer:       Jonathan Thaler (thaler.jonathan@gmail.com)
+category:         Agent-Based Simulation, System-Dynamics, FRP
+synopsis:         Accompanying examples showing the use of the library chimera
+
+description:      Domain-specific language embedded in Haskell for programming hybrid agent-based simulation (mixed discrete-time and continuous-time) systems.
+                  Chimera is based on Yampa/Dunai/BearRiver as it utilises concepts of Functional Reactive Programming (FRP) 
+
+build-type:        Simple
 
 -------------------------------------------------------------------------------
 -- EXECUTABLES 
@@ -19,8 +28,25 @@ executable AgentZero
                     random,
                     fgl
                     
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded -fno-warn-unused-top-binds
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded -fno-warn-unused-top-binds
   
+
+executable SDSir
+  main-is:         Main.hs
+  hs-source-dirs:
+    SD/SDSir/.,
+    ABS/SIRExamples/Utils/.
+
+  build-depends:  base, 
+                  chimera, 
+                  dunai,
+                  bearriver,
+                  parallel,
+                  IfElse,
+                  transformers
+
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
+
 executable FrSIR
   main-is:         Main.hs
   hs-source-dirs:
@@ -35,8 +61,8 @@ executable FrSIR
                     MonadRandom,
                     mtl
 
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
-  
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
+
 executable NewAgents
   main-is:         Main.hs
   hs-source-dirs:  ABS/NewAgents/
@@ -47,65 +73,7 @@ executable NewAgents
                     bearriver,
                     parallel
 
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
-
-executable SDSir
-  main-is:         Main.hs
-  hs-source-dirs:
-    .,
-    SD/SDSir/,
-    ABS/SIRExamples/Utils/
-
-  build-depends:   base, 
-                    chimera, 
-                    dunai,
-                    bearriver,
-                    parallel,
-                    IfElse,
-                    transformers
-
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
-
---executable chimeraExamples
---  main-is:         Main.hs
-  -- hs-source-dirs:  src
---  build-depends:   base, 
- --                   chimera, 
-  --                  Yampa, 
-   ----                 gloss,
-     --               random,
-      --              containers,
-       --             array,
-        --            MonadRandom,
-         --           split,
-          --          fgl,
-           --         mtl,
-            --        transformers,
-             --       IfElse
-
--- install Yampa from https://github.com/ivanperez-keera/Yampa build using -fexpose-core
-
-  --ghc-options:      -O2
-   ------                 -Wall
-      --              -Werror
-       --             -threaded
-                    -- -prof
-                    -- "-with-rtsopts= -s -hy -p -i0.1 -K256M"
-                    -- -auto-all
-                    -- -caf-all
-                    -- -fforce-recomp
-                    -- -Wall
-                    -- -fwarn-tabs
-                    -- -fno-warn-tabs
-                    -- -threaded
-                    -- -eventlog
-                    -- -rtsopts
-                    -- -prof
-                    -- -auto-all
-                    -- -caf-all
-                    -- -fforce-recomp
-                    -- "-with-rtsopts=-N"
-                      -- use hc, hd or hy
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
 
 -------------------------------------------------------------------------------
 -- TEST-SUITES
@@ -117,7 +85,7 @@ Test-Suite test_SugarScape
     exitcode-stdio-1.0
   hs-source-dirs:
     ., 
-    SugarScape/Tests/
+    ABS/SugarScape/Tests/
   main-is: Test.hs
   build-depends:
       base
@@ -138,7 +106,7 @@ Test-Suite test_FrSIR
     exitcode-stdio-1.0
   hs-source-dirs:
     .,
-    FrSIR/Tests/
+    ABS/SIRExamples/FrSIR/Tests/
   main-is: Test.hs
   build-depends:
       base
