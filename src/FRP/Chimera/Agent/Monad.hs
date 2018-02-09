@@ -57,7 +57,7 @@ isDeadM = state (\ao -> (isDead ao, ao))
 -- MESSAGING / DATA-FLOW
 -------------------------------------------------------------------------------
 dataFlowM :: Monad m
-          => AgentData d 
+          => DataFlow d
           -> StateT (AgentOut m o d) m ()
 dataFlowM df = state (\ao -> ((), dataFlow df ao))
 
@@ -68,7 +68,7 @@ dataFlowToM :: Monad m
 dataFlowToM receiver d = state (\ao -> ((), dataFlowTo receiver d ao))
 
 dataFlowsM :: Monad m
-           => [AgentData d] 
+           => [DataFlow d] 
            -> StateT (AgentOut m o d) m ()
 dataFlowsM dfs = state (\ao -> ((), dataFlows dfs ao))
 
@@ -86,13 +86,13 @@ broadcastDataFlowM d receiverIds = state (broadcastDataFlowMAux d)
         dfs = zip receiverIds ds
 
 onDataFlowMState :: MonadState acc m
-                 => (AgentData d -> m ()) 
+                 => (DataFlow d-> m ()) 
                  -> AgentIn o d
                  -> m ()
 onDataFlowMState dfHdl ai = onDataFlowM (\_ df -> dfHdl df) ai ()
 
 onDataFlowM :: Monad m
-            => (acc -> AgentData d -> m acc) 
+            => (acc -> DataFlow d-> m acc) 
             -> AgentIn o d
             -> acc 
             -> m acc
@@ -197,8 +197,8 @@ agentMonadic :: Monad m
              -> Agent m o d
 agentMonadic f ao = proc ain -> do
   age <- time -< ()
-  let _ao' = runState (f age ain) ao  -- TODO: put ao' using state-monad
-  returnA -< ()
+  let (_, ao') = runState (f age ain) ao  
+  returnA -< ao'
 
 -------------------------------------------------------------------------------
 -- MONADIC UTILITIES

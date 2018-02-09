@@ -1,4 +1,4 @@
-name:              ChimeraExamples
+name:              examples
 version:           1.0
 Build-Type:        Simple
 cabal-version:     >= 1.2

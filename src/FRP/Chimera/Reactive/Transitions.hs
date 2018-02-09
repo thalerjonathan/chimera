@@ -13,26 +13,23 @@ module FRP.Chimera.Reactive.Transitions
 
   , transitionOnEvent
 
-  , transitionOnObservablePred
+  -- , transitionOnObservablePred
   , transitionOnData
   -- , transitionOnEventWithGuard
   ) where
 
 import Control.Monad.Random
-import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Agent.Stream
 import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.Extensions 
 
 type EventCont m o d a          = a -> Agent m o d
--- TODO: is StateT really necessary or can we go with a generic Monad m only? 
-type EventSource m o d a        = SF (StateT (AgentOut m o d) m) (AgentIn o d) (Event a)
+type EventSource m o d a        = SF m (AgentIn o d) (Event a)
 
 -- NOTE: internal use only:
-type TransitionSF m o d a        = SF (StateT (AgentOut m o d) m) (AgentIn o d) ((), Event a)
+type TransitionSF m o d a        = SF m (AgentIn o d) (AgentOut m o d, Event a)
 
 transitionAfter :: Monad m 
                 => Double
@@ -46,7 +43,7 @@ transitionAfter t from to = switch (transitionAfterAux t from) (const to)
                        -> Agent m o d 
                        -> TransitionSF m o d ()
     transitionAfterAux t from = proc ain -> do
-      out   <- from       -< ain
+      out <- from       -< ain
       evt <- after t () -< ()
       returnA -< (out, evt)
 
@@ -65,10 +62,10 @@ transitionAfterExpSS t ss from to = switch (transitionAfterExpSSAux from) (const
       out   <- from                                     -< ain
       evts  <- superSamplingUniform ss (afterExp t ())  -< ()
 
-      let hasEvent  = any isEvent evts
-          evt       = if hasEvent 
-                        then Event () 
-                        else NoEvent
+      let hasEvent = any isEvent evts
+          evt      = if hasEvent 
+                      then Event () 
+                      else NoEvent
 
       returnA -< (out, evt)
 
@@ -137,6 +134,7 @@ transitionOnEvent evtSrc from to = switch (transitionEventAux evtSrc from) to
       evt     <- evtSrc   -< ain
       returnA -< (out, evt)
 
+{-
 type ObservablePredicate o = o -> Bool
 
 -- NOTE: assumes state isJust
@@ -157,6 +155,7 @@ transitionOnObservablePred pred from to =
       obs     <- agentObservableS -< ()
       evt     <- edgeFrom False   -< pred obs
       returnA -< (out, evt)
+-}
 
 transitionOnData :: (Monad m, Eq d)
                  => d 

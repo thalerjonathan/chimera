@@ -15,11 +15,11 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
 
 dataFlowS :: Monad m
-          => SF (StateT (AgentOut m o d) m) (AgentData d) ()
+          => SF (StateT (AgentOut m o d) m) (DataFlow d) ()
 dataFlowS = arrM (lift . dataFlowM)
 
 dataFlowsS :: Monad m
-           => SF (StateT (AgentOut m o d) m) [AgentData d] ()
+           => SF (StateT (AgentOut m o d) m) [DataFlow d] ()
 dataFlowsS = arrM (lift . dataFlowsM)
 
 -- NOTE: assuming that state isJust

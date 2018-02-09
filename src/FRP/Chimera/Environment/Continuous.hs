@@ -91,7 +91,7 @@ stepRandom (ox, oy) e step =  do
   return $ wrapCont2dEnv e (ox', oy')
 
 distanceManhattanCont2d :: Continuous2dCoord -> DistanceFunction
-distanceManhattanCont2d (x1, y1) (x2, y2) = abs (x1 - x2)) + (abs (y1 - y2)
+distanceManhattanCont2d (x1, y1) (x2, y2) = abs (x1 - x2) + abs (y1 - y2)
 
 distanceEuclideanCont2d :: Continuous2dCoord -> DistanceFunction
 distanceEuclideanCont2d (x1, y1) (x2, y2) = 

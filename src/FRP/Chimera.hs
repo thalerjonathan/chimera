@@ -2,13 +2,10 @@ module FRP.Chimera
   (
   -- FRP.Chimera.Agent.Interface
     AgentId
-  , AgentData
+  , DataFlow
   , DataFilter
 
   , Agent
-  , AgentRandom
-  , AgentMonad
-  , AgentRandomMonad
   , AgentTX
 
   , AgentDef (..)
@@ -284,7 +281,7 @@ module FRP.Chimera
 
   , transitionOnEvent
 
-  , transitionOnObservablePred
+  -- , transitionOnObservablePred
   , transitionOnData
   -- , transitionOnEventWithGuard
 

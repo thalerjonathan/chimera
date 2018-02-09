@@ -27,8 +27,8 @@ import FRP.Chimera.Environment.Network
 import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.Extensions 
 
-type DataSource m o d = SF m (AgentIn o d) (AgentData d)
-type DataFlowSF m o d = SF m (AgentIn o d) [AgentData d]
+type DataSource m o d = SF m (AgentIn o d) (DataFlow d)
+type DataFlowSF m o d = SF m (AgentIn o d) [DataFlow d]
 
 -- TODO: dataFlowRepeatedly
 -- TODO: dataFlowAfter
@@ -37,7 +37,7 @@ type DataFlowSF m o d = SF m (AgentIn o d) [AgentData d]
 
 dataFlowOccasionally :: MonadRandom m
                      => Double
-                     -> AgentData d
+                     -> DataFlow d
                      -> DataFlowSF m o d
 dataFlowOccasionally rate d = dataFlowOccasionallySrc rate (constDataSource d)
 
@@ -56,7 +56,7 @@ dataFlowOccasionallySrc rate dfSrc = proc ain -> do
 dataFlowOccasionallySS :: MonadRandom m
                        => Double
                        -> Int
-                       -> AgentData d
+                       -> DataFlow d
                        -> DataFlowSF m o d
 dataFlowOccasionallySS rate ss d = dataFlowOccasionallySrcSS rate ss (constDataSource d)
 
@@ -70,9 +70,9 @@ dataFlowOccasionallySrcSS rate ss dfSrc = proc ain -> do
     dfSS       <- superSamplingUniform ss dfSrc                     -< ain
     returnA -< foldr dataFlowOccasionallySrcSSAux [] (zip sendEvtsSS dfSS)
   where
-    dataFlowOccasionallySrcSSAux :: (Event (), AgentData d)
-                                 -> [AgentData d]
-                                 -> [AgentData d]
+    dataFlowOccasionallySrcSSAux :: (Event (), DataFlow d)
+                                 -> [DataFlow d]
+                                 -> [DataFlow d]
     dataFlowOccasionallySrcSSAux (NoEvent,  _) acc = acc
     dataFlowOccasionallySrcSSAux (Event (), d) acc = d : acc
 -------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ dataFlowOccasionallySrcSS rate ss dfSrc = proc ain -> do
 constDataReceiverSource :: Monad m => d -> AgentId -> DataSource m o d
 constDataReceiverSource d receiver = constant (receiver, d)
 
-constDataSource :: Monad m => AgentData d -> DataSource m o d
+constDataSource :: Monad m => DataFlow d -> DataSource m o d
 constDataSource = constant
 
 randomNeighbourNodeMsgSource :: MonadRandom m

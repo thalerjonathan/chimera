@@ -1,13 +1,10 @@
 module FRP.Chimera.Agent.Interface 
   (
     AgentId
-  , AgentData
+  , DataFlow
   , DataFilter
 
   , Agent
-  , AgentRandom
-  , AgentMonad
-  , AgentRandomMonad
   , AgentTX
 
   , AgentDef (..)
@@ -73,8 +70,6 @@ import Data.List
 import Data.Maybe
 
 import Control.Concurrent.STM.TVar
-import Control.Monad.Random
-import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Simulation.Internal
@@ -83,13 +78,17 @@ type AgentId       = Int
 type DataFlow d    = (AgentId, d)
 type DataFilter d  = DataFlow d -> Bool
 
+-- TODO: need an agent-monad which allows to deal unique agent-ids for creating agents
+-- it is basically a state monad which increments the counter after
+-- the 'nextId' operation - can we prevent the agents from accessing the state aribtrarily?
+
 -- an agent is simply a SF with a generic computational context, which depends on the model
 -- note that it is important that we do not fix m e.g. to StateT to allow an environment
 -- or adding a RandT for allowing randomness but we leave this to the model implementer, otherwise
 -- we would burden the API with details (type of the state in StateT, type of the RandomNumber generator 
 -- in RandT) they may not need e.g. there are models which do not need a global read/write environment
 -- or event don't use randonmness (e.g. SD emulation)
-type Agent m o d = SF m (AgentIn o d) (AgentOut o d)
+type Agent m o d = SF m (AgentIn o d) (AgentOut m o d)
 
 -- TODO: should we prevent envrionment-modification in TX-functions? 
 -- can achieve this by replacing m by Identity monad
@@ -225,8 +224,9 @@ onDataFlowFrom :: AgentId
                -> acc 
                -> acc
 onDataFlowFrom senderId datHdl ai acc = 
-    onFilterDataFlow filterBySender datHdl
+    onFilterDataFlow filterBySender datHdl ai acc
   where
+    filterBySender :: DataFlow d -> Bool
     filterBySender (senderId', _) = senderId == senderId'
 
 onDataFlowType :: (Eq d) 
@@ -235,7 +235,8 @@ onDataFlowType :: (Eq d)
                -> AgentIn o d 
                -> acc 
                -> acc
-onDataFlowType d datHdl ai acc = onFilterDataFlow filterByType datHdl
+onDataFlowType d datHdl ai acc = 
+    onFilterDataFlow filterByType datHdl ai acc 
   where
     filterByType = (==d) . snd 
 
@@ -252,7 +253,7 @@ updateAgentObservable f ao =
   ao { aoObservable = Just $ f $ fromJust $ aoObservable ao }
 
 setAgentObservable :: o -> AgentOut m o d -> AgentOut m o d
-setAgentObservable o ao = updateAgentObservable (const o)
+setAgentObservable o ao = updateAgentObservable (const o) ao
 
 -------------------------------------------------------------------------------
 -- Transactions

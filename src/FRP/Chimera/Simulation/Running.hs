@@ -8,7 +8,6 @@ module FRP.Chimera.Simulation.Running
   ) where
 
 import Control.Monad.Trans.MSF.Reader
-import Control.Monad.Trans.MSF.State
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
@@ -26,6 +25,33 @@ runAgents = readerS $ proc (dt, (sfs, ins)) -> do
     let (aos, sfs') = unzip arets
     returnA -< (sfs', aos)
 
+runAgent :: Monad m 
+          => SF m 
+              (Agent m o d, AgentIn o d)
+              (AgentOut m o d, Agent m o d)
+runAgent = arrM (\(sf, ain) -> do
+  (ao, sf') <- unMSF sf ain
+  return (ao, sf'))
+
+runAgentWithDt :: Monad m
+               => Double
+               -> SF m
+                    (Agent m o d, AgentIn o d)
+                    (AgentOut m o d, Agent m o d)
+runAgentWithDt dt = readerS $ proc (_, (sf, ain)) -> do
+  (ao, sf') <- runReaderS_ runAgent dt -< (sf, ain)
+  returnA -< (ao, sf')
+
+-- NOTE: TXs always run with dt = 0
+runAgentTx :: Monad m
+           => SF m
+                (AgentTX m o d, AgentTXIn d)
+                (AgentTXOut m o d, AgentTX m o d)
+runAgentTx = readerS $ proc (_, (txSf, txIn)) -> do
+  (txOut, txSf') <- runReaderS_ (arrM (uncurry unMSF)) 0 -< (txSf, txIn)
+  returnA -< (txOut, txSf')
+
+{-
 runAgent :: Monad m 
           => SF m 
               (Agent m o d, AgentIn o d)
@@ -68,3 +94,4 @@ runAgentTx :: Monad m
 runAgentTx = readerS $ proc (_, (txSf, txIn)) -> do
   (txOut, txSf') <- runReaderS_ (arrM (\(txSf, txIn) -> unMSF txSf txIn)) 0 -< (txSf, txIn)
   returnA -< (txOut, txSf')
+  -}

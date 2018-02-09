@@ -125,7 +125,7 @@ runSD initSdDefs dt t = runIdentity sdObsEnvM
 dummyRng :: StdGen
 dummyRng = mkStdGen 0
 
-filterMessageValue :: (AgentData SDMsg) -> Double -> Double
+filterMessageValue :: DataFlow SDMsg -> Double -> Double
 filterMessageValue (_, Value v) _ = v
 
 valueInFrom :: AgentId -> SDIn -> Double

@@ -133,7 +133,7 @@ distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE
   where
     allData = collectAllData aouts
 
-    distributeDataAux :: Map.Map AgentId [AgentData d]
+    distributeDataAux :: Map.Map AgentId [DataFlow d]
                       -> AgentIn o d
                       -> AgentIn o d
     distributeDataAux allData ain = ain'
@@ -146,21 +146,21 @@ distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE
 
         ain' = ain { aiData = ds' }
 
-collectAllData :: [(AgentId, AgentOut m o d)] -> Map.Map AgentId [AgentData d]
+collectAllData :: [(AgentId, AgentOut m o d)] -> Map.Map AgentId [DataFlow d]
 collectAllData aos = foldr collectAllDataAux Map.empty aos
   where
     collectAllDataAux :: (AgentId, AgentOut m o d)
-                      -> Map.Map AgentId [AgentData d]
-                      -> Map.Map AgentId [AgentData d]
+                      -> Map.Map AgentId [DataFlow d]
+                      -> Map.Map AgentId [DataFlow d]
     collectAllDataAux (senderId, ao) accData 
         | not $ null ds = foldr collectAllDataAuxAux accData ds
         | otherwise = accData
       where
         ds = aoData ao
 
-        collectAllDataAuxAux :: AgentData d
-                             -> Map.Map AgentId [AgentData d]
-                             -> Map.Map AgentId [AgentData d]
+        collectAllDataAuxAux :: DataFlow d
+                             -> Map.Map AgentId [DataFlow d]
+                             -> Map.Map AgentId [DataFlow d]
         collectAllDataAuxAux (receiverId, m) accData = accData'
           where
             d = (senderId, m)
