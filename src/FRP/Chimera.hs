@@ -18,9 +18,7 @@ module FRP.Chimera
   , isDead
   , agentOut
   , agentOutObservable
-  , nextAgentId
 
-  , onStart
   , onEvent
 
   , dataFlow
@@ -60,7 +58,17 @@ module FRP.Chimera
   , agentRecursions
 
   -- FRP.Chimera.Agent.Monad
-  , AgentMonadic
+  , nextAgentIdM
+
+  , scheduleEventM
+  , unscheduleEventM
+
+  , startingAgentM
+  
+  , ifThenElse
+  , ifThenElseM
+{-
+    AgentMonadic
 
   , createAgentM
   , killM
@@ -81,19 +89,17 @@ module FRP.Chimera
   , agentObservableFieldM
 
   , agentMonadic
-
-  , ifThenElse
-  , ifThenElseM
+-}
 
   -- FRP.Chimera.Agent.Reactive
   -- NOTHING FOR NOW
 
   -- FRP.Chimera.Agent.Stream
-  , dataFlowS
-  , dataFlowsS
+  --, dataFlowS
+  --, dataFlowsS
   
-  , agentObservableS
-  , setAgentObservableS
+  --, agentObservableS
+  --, setAgentObservableS
   
   -- FRP.Chimera.Environment.Continuous
   , Continuous2dDimension
@@ -374,19 +380,19 @@ module FRP.Chimera
   , stockInFrom
 
   , flowOutTo
-  , flowOutToM
-  , flowOutToS
+  --, flowOutToM
+  --, flowOutToS
 
   , stockOutTo
-  , stockOutToM
-  , stockOutToS
+  --, stockOutToM
+  --, stockOutToS
 
   -- FRP.Chimera.Simulation.Init 
-  , SimulationParams (..)
+  --, SimulationParams (..)
 
-  , initRng
-  , initSimulation
-  , newAgentId
+  --, initRng
+  --, initSimulation
+  --, newAgentId
 
   -- FRP.Chimera.Simulation.Replication   
   , AgentDefReplicator
@@ -407,7 +413,7 @@ module FRP.Chimera
   , simulateTime
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas
-  , simulateAggregateTime
+  --, simulateAggregateTime
 
   -- FRP.Chimera.Simulation.Common 
   , AgentObservable
@@ -415,7 +421,7 @@ module FRP.Chimera
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Agent.Monad
-import FRP.Chimera.Agent.Stream
+--import FRP.Chimera.Agent.Stream
 
 import FRP.Chimera.Environment.Continuous
 import FRP.Chimera.Environment.Definitions
@@ -439,7 +445,7 @@ import FRP.Chimera.Reactive.Transitions
 --import FRP.Chimera.Rendering.Network
 
 import FRP.Chimera.SD.Definitions
-import FRP.Chimera.Simulation.Init 
+--import FRP.Chimera.Simulation.Init 
 import FRP.Chimera.Simulation.Replication   
 import FRP.Chimera.Simulation.Simulation
 import FRP.Chimera.Simulation.Common

@@ -9,6 +9,8 @@ module FRP.Chimera.Simulation.Replication
 
   , runReplications
   , runReplicationsWithAggregation
+
+  , duplicateRng
   ) where
 
 import Control.Monad.Random
@@ -19,82 +21,71 @@ import FRP.Yampa
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Simulation
-import FRP.Chimera.Simulation.Init
 
-type AgentDefReplicator m o d   = StdGen -> AgentDef m o d -> (AgentDef m o d, StdGen)
+type AgentDefReplicator m o d e = AgentDef m o d e -> AgentDef m o d e
 type Replication o              = [SimulationStepOut o]
 type ReplicationAggregate a     = [a]
 
-data ReplicationConfig m o d = ReplicationConfig 
-  {
-    replCfgCount            :: Int
-  , replCfgAgentReplicator  :: AgentDefReplicator m o d
+data ReplicationConfig m o d e = ReplicationConfig 
+  { replCfgCount            :: Int
+  , replCfgAgentReplicator  :: AgentDefReplicator m o d e
   }
 
-defaultAgentReplicator :: AgentDefReplicator m o d
-defaultAgentReplicator rng adef = (adef, rng)
+defaultAgentReplicator :: AgentDefReplicator m o d e
+defaultAgentReplicator = id
 
 runReplicationsWithAggregation :: Monad m
-                               => [AgentDef m o d]
-                               -> SimulationParams
+                               => [AgentDef m o d e]
                                -> DTime
                                -> Time
-                               -> ReplicationConfig m o d
+                               -> ReplicationConfig m o d e
                                -> AgentObservableAggregator o a
                                -> [m (ReplicationAggregate a)]
-runReplicationsWithAggregation ads params dt t replCfg aggrFunc = result
+runReplicationsWithAggregation ads _dt _t replCfg aggrFunc = result
   where
     replCount = replCfgCount replCfg
-    (replRngs, _) = duplicateRng replCount (simRng params)
-
     -- NOTE: replace by rseq if no hardware-parallelism should be used
-    result = parMap rpar (runReplicationsWithAggregationAux ads params aggrFunc replCfg) replRngs
+    result = parMap rpar (const $ runReplicationsWithAggregationAux ads aggrFunc replCfg) [1..replCount]
 
     runReplicationsWithAggregationAux :: Monad m
-                                      => [AgentDef m o d]
-                                      -> SimulationParams
+                                      => [AgentDef m o d e]
                                       -> AgentObservableAggregator o a
-                                      -> ReplicationConfig m o d
-                                      -> StdGen 
+                                      -> ReplicationConfig m o d e
                                       -> m (ReplicationAggregate a)
-    runReplicationsWithAggregationAux ads params aggrFunc replCfg replRng = 
-        simulateAggregateTime ads' (params { simRng = replRng' }) dt t aggrFunc
+    runReplicationsWithAggregationAux ads _aggrFunc replCfg = undefined
+        -- simulateAggregateTime ads' dt t aggrFunc
       where
-        (ads', replRng') = foldr (adsFoldAux replCfg) ([], replRng) ads
+        _ads' = foldr (adsFoldAux replCfg) [] ads
 
 runReplications :: Monad m
-                => [AgentDef m o d]
-                -> SimulationParams
+                => [AgentDef m o d e]
                 -> DTime
                 -> Time
-                -> ReplicationConfig m o d
+                -> ReplicationConfig m o d e
                 -> [m (Replication o)]
-runReplications ads params dt t replCfg = result
+runReplications ads dt t replCfg = result
   where
     replCount = replCfgCount replCfg
-    (replRngs, _) = duplicateRng replCount (simRng params)
-
+    
     -- NOTE: replace by rseq if no hardware-parallelism should be used
-    result = parMap rpar (runReplicationsAux ads params replCfg) replRngs
+    result = parMap rpar (const $ runReplicationsAux ads replCfg) [1..replCount]
 
     runReplicationsAux :: Monad m
-                       => [AgentDef m o d]
-                       -> SimulationParams
-                       -> ReplicationConfig m o d
-                       -> StdGen 
+                       => [AgentDef m o d e]
+                       -> ReplicationConfig m o d e
                        -> m (Replication o)
-    runReplicationsAux ads params replCfg replRng = 
-        simulateTime ads' (params { simRng = replRng' }) dt t
+    runReplicationsAux ads replCfg = 
+        simulateTime ads' dt t
       where
-        (ads', replRng') = foldr (adsFoldAux replCfg) ([], replRng) ads
+        ads' = foldr (adsFoldAux replCfg) [] ads
 
-adsFoldAux :: ReplicationConfig m o d 
-           -> AgentDef m o d 
-           -> ([AgentDef m o d], StdGen) 
-           -> ([AgentDef m o d], StdGen)
-adsFoldAux cfg ad (adsAcc, rngAcc) = (ad' : adsAcc, rngAcc')
+adsFoldAux :: ReplicationConfig m o d e
+           -> AgentDef m o d e
+           -> [AgentDef m o d e]
+           -> [AgentDef m o d e]
+adsFoldAux cfg ad adsAcc = ad' : adsAcc
   where
-    (ad', rngAcc') = (replCfgAgentReplicator cfg) rngAcc ad
+    ad' = replCfgAgentReplicator cfg ad
 
 duplicateRng :: Int -> StdGen -> ([StdGen], StdGen)
 duplicateRng n g = duplicateRngAux n g []

@@ -7,7 +7,7 @@ module FRP.Chimera.Simulation.Simulation
   , simulateTime
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas
-  , simulateAggregateTime
+  -- , simulateAggregateTime
 
   -- , simulateDebug
   -- , simulateDebugInternal
@@ -18,8 +18,8 @@ import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
+import FRP.Chimera.Agent.Monad 
 import FRP.Chimera.Simulation.Common
-import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.ParIteration
 
 type AgentObservableAggregator o a  = SimulationStepOut o -> a
@@ -49,12 +49,17 @@ simulateTime :: Monad m
              -> DTime
              -> Time
              -> m [SimulationStepOut o]
-simulateTime adefs dt t = agrs
-  where
-    steps = floor $ t / dt
-    ticks = replicate steps ()
-    aossM = embed (simulate adefs) ticks
-    agrs = runReaderT aossM dt
+simulateTime adefs dt t = do
+    let steps  = floor $ t / dt
+        ticks  = replicate steps ()
+    
+    ((asfs, ais), s') <- runStateT (startingAgentM adefs) absState
+
+    let aossReader = embed (simulatePar asfs ais) ticks
+        aossState  = runReaderT aossReader dt
+        aossM      = evalStateT aossState s'
+
+    aossM
 
   {-
 simulateTimeDeltas :: [AgentDef m o d]
@@ -80,14 +85,14 @@ simulateAggregateTimeDeltas adefs e params dts aggrFun = seq agrs agrs -- optimi
     agrSf = arr aggrFun
     sf = simulate params adefs e >>> agrSf
     agrs = embed sf ((), sts)
--}
+
 
 simulateAggregateTime :: Monad m
                       => [AgentDef m o d e]
                       -> DTime
                       -> Time
-                      -> AgentObservableAggregator o a
-                      -> (m [a] -> [a])
+                      -> AgentObservableAggregator o a -- SimulationStepOut o -> a
+                      -> (m [[a]] -> [a])
                       -> [a]
 simulateAggregateTime adefs dt t runM aggrFun = seq aoss aoss -- optimization
   where
@@ -96,12 +101,12 @@ simulateAggregateTime adefs dt t runM aggrFun = seq aoss aoss -- optimization
     agrSf = arr aggrFun
     sf    = simulate adefs >>> agrSf
 
-    aossDt  = embed sf ticks
-    aossAbs = runReaderT aossDt dt
-    aossM   = runStateT aossAbs absState
+    aossReader = embed sf ticks
+    aossState  = runReaderT aossReader dt
+    aossM      = runStateT aossState absState
     (aoss, absStateFinal) = runM aossM
 
-
+-}
 ----------------------------------------------------------------------------------------------------------------------
 
 {-
@@ -149,14 +154,4 @@ data FooPred s e = FooPred deriving (Read, Show)
 instance Pred (FooPred s e) () (SimulationStepOut o) where
     evalPred _ _ _ _ = True
     -}
-----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------
-simulate :: Monad m
-         => [AgentDef m o d e]
-         -> SF (ABSMonad m e) () (SimulationStepOut o)
-simulate adefs = simulatePar asfs ais
-  where
-    asfs = map adBeh adefs
-    ais = map startingAgentInFromAgentDef adefs
 ----------------------------------------------------------------------------------------------------------------------
