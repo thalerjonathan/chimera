@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts     #-}
-module FRP.Chimera.Agent.Stream 
+module FRP.Chimera.Agent.Stream where
+{-
   (
     dataFlowS
   , dataFlowsS
@@ -28,3 +29,4 @@ agentObservableS = arrM_ (lift agentObservableM)
 
 setAgentObservableS :: Monad m => SF (StateT (AgentOut m o d) m) o ()
 setAgentObservableS = arrM (lift . setAgentObservableM)
+-}

@@ -3,8 +3,15 @@ module FRP.Chimera.Agent.Interface
     AgentId
   , DataFlow
   , DataFilter
+  
+  , EventId
+  , QueueItem (..)
+  , ABSState (..)
+
+  , ABSMonad
 
   , Agent
+  , AgentCont
   , AgentTX
 
   , AgentDef (..)
@@ -13,16 +20,17 @@ module FRP.Chimera.Agent.Interface
   , AgentTXIn (..)
   , AgentTXOut (..)
   
+  , absState
+  
   , agentId
   , createAgent
   , kill
   , isDead
   , agentOut
   , agentOutObservable
-  , nextAgentId
 
-  , onStart
   , onEvent
+  , hasEvent
 
   , dataFlow
   , dataFlowTo
@@ -60,27 +68,40 @@ module FRP.Chimera.Agent.Interface
   , isRecursive
   , agentRecursions
 
-  , startingAgent
-  , startingAgentIn
   , startingAgentInFromAgentDef
   , agentIn
   ) where
 
-import Data.List
-import Data.Maybe
+import           Data.List
+import           Data.Maybe
 
-import Control.Concurrent.STM.TVar
-import FRP.BearRiver
+import           Control.Monad.State.Strict
+import qualified Data.PQueue.Min as PQ
+import           FRP.BearRiver
 
-import FRP.Chimera.Simulation.Internal
+type AgentId      = Int
+type DataFlow d   = (AgentId, d)
+type DataFilter d = DataFlow d -> Bool
 
-type AgentId       = Int
-type DataFlow d    = (AgentId, d)
-type DataFilter d  = DataFlow d -> Bool
+type EventId      = Integer
+data QueueItem e  = QueueItem AgentId (Event e) Time deriving Show
+type EventQueue e = PQ.MinQueue (QueueItem e)
 
--- TODO: need an agent-monad which allows to deal unique agent-ids for creating agents
--- it is basically a state monad which increments the counter after
--- the 'nextId' operation - can we prevent the agents from accessing the state aribtrarily?
+instance Eq (QueueItem e) where
+  (==) (QueueItem _ _ t1) (QueueItem _ _ t2) = t1 == t2
+
+instance Ord (QueueItem e) where
+  compare (QueueItem _ _ t1) (QueueItem _ _ t2) = compare t1 t2
+
+data ABSState e = ABSState
+  { absNextId   :: AgentId
+  , absEvtQueue :: EventQueue e
+
+  , absTime     :: Time
+  , absEvtIdx   :: Integer
+  }
+
+type ABSMonad m e = StateT (ABSState e) m
 
 -- an agent is simply a SF with a generic computational context, which depends on the model
 -- note that it is important that we do not fix m e.g. to StateT to allow an environment
@@ -88,38 +109,35 @@ type DataFilter d  = DataFlow d -> Bool
 -- we would burden the API with details (type of the state in StateT, type of the RandomNumber generator 
 -- in RandT) they may not need e.g. there are models which do not need a global read/write environment
 -- or event don't use randonmness (e.g. SD emulation)
-type Agent m o d = SF m (AgentIn o d) (AgentOut m o d)
+type AgentCont m o d e = SF (ABSMonad m e) (AgentIn o d e) (AgentOut m o d e)
+type Agent m o d e = (ABSMonad m e) (AgentCont m o d e)
 
--- TODO: should we prevent envrionment-modification in TX-functions? 
--- can achieve this by replacing m by Identity monad
-type AgentTX m o d = SF m (AgentTXIn d) (AgentTXOut m o d)
+type AgentTX m o d e = SF (ABSMonad m e) (AgentTXIn d) (AgentTXOut m o d e)
 
-data AgentDef m o d = AgentDef
-  { adId           :: !AgentId
-  , adBeh          :: Agent m o d
-  , adInitData     :: ![DataFlow d]     -- AgentId identifies sender
+data AgentDef m o d e = AgentDef
+  { adId       :: !AgentId
+  , adBeh      :: Agent m o d e
+  , adInitData :: ![DataFlow d]     -- AgentId identifies sender
   }
 
--- TODO: remove IdGen, it is a pain in the ass
-data AgentIn o d = AgentIn 
+data AgentIn o d e = AgentIn 
   { aiId              :: !AgentId
-  , aiIdGen           :: !(TVar Int)
-  , aiStart           :: !(Event ())
   , aiData            :: ![DataFlow d]     -- AgentId identifies sender
   
+  , aiEvent           :: !(Event e)
   , aiRequestTx       :: !(Event (DataFlow d))
 
   , aiRec             :: !(Event [Maybe o])
   , aiRecInitAllowed  :: !Bool
   }
 
-data AgentOut m o d = AgentOut 
+data AgentOut m o d e = AgentOut 
   { aoKill              :: !(Event ())
-  , aoCreate            :: ![AgentDef m o d]
+  , aoCreate            :: ![AgentDef m o d e]
   , aoData              :: ![DataFlow d]           -- AgentId identifies receiver
 
-  , aoRequestTx         :: !(Event (DataFlow d, AgentTX m o d))
-  , aoAcceptTx          :: !(Event (d, AgentTX m o d))
+  , aoRequestTx         :: !(Event (DataFlow d, AgentTX m o d e))
+  , aoAcceptTx          :: !(Event (d, AgentTX m o d e))
 
   , aoObservable        :: !(Maybe o)             -- OPTIONAL observable state
 
@@ -128,88 +146,89 @@ data AgentOut m o d = AgentOut
   }
 
 data AgentTXIn d = AgentTXIn
-  { aiTxData      :: Maybe d
-  , aiTxCommit    :: Bool
-  , aiTxAbort     :: Bool
+  { aiTxData   :: Maybe d
+  , aiTxCommit :: Bool
+  , aiTxAbort  :: Bool
   }
 
-data AgentTXOut m o d = AgentTXOut
+data AgentTXOut m o d e = AgentTXOut
   { aoTxData      :: Maybe d
-  , aoTxCommit    :: Maybe (AgentOut m o d, Maybe (Agent m o d))
+  , aoTxCommit    :: Maybe (AgentOut m o d e, Maybe (AgentCont m o d e))
   , aoTxAbort     :: Bool
   }
 
 -------------------------------------------------------------------------------
 -- GENERAL 
 -------------------------------------------------------------------------------
-agentId :: AgentIn o d -> AgentId
+absState :: ABSState e
+absState = ABSState
+  { absNextId   = 0
+  , absEvtQueue = PQ.empty
+
+  , absTime     = 0
+  , absEvtIdx   = 0
+  }
+
+agentId :: AgentIn o d e -> AgentId
 agentId = aiId 
 
-createAgent :: AgentDef m o d -> AgentOut m o d -> AgentOut m o d
+createAgent :: AgentDef m o d e -> AgentOut m o d e -> AgentOut m o d e
 createAgent newDef ao = ao { aoCreate = newDef : aoCreate ao }
 
-agentOut:: AgentOut m o d
+agentOut:: AgentOut m o d e
 agentOut = agentOutAux Nothing
 
-agentOutObservable :: o -> AgentOut m o d
+agentOutObservable :: o -> AgentOut m o d e
 agentOutObservable o = agentOutAux (Just o)
 
-nextAgentId :: AgentIn o d -> AgentId
-nextAgentId AgentIn { aiIdGen = idGen } = incrementAtomicallyUnsafe idGen
-
-kill :: AgentOut m o d -> AgentOut m o d
+kill :: AgentOut m o d e -> AgentOut m o d e
 kill ao = ao { aoKill = Event () }
 
-isDead :: AgentOut m o d -> Bool
+isDead :: AgentOut m o d e -> Bool
 isDead = isEvent . aoKill
+
+hasEvent :: AgentIn o d e -> Bool
+hasEvent = isEvent . aiEvent
 
 -------------------------------------------------------------------------------
 -- EVENTS
 -------------------------------------------------------------------------------
-onStart :: (AgentOut m o d -> AgentOut m o d) 
-        -> AgentIn o d 
-        -> AgentOut m o d 
-        -> AgentOut m o d
-onStart evtHdl ai = onEvent evtHdl startEvt
-  where
-    startEvt = aiStart ai
-
-onEvent :: (AgentOut m o d -> AgentOut m o d) 
-        -> Event () 
-        -> AgentOut m o d 
-        -> AgentOut m o d
-onEvent evtHdl evt ao = event ao (\_ -> evtHdl ao) evt
+onEvent :: (e -> AgentOut m o d e -> AgentOut m o d e) 
+        -> Event e 
+        -> AgentOut m o d e 
+        -> AgentOut m o d e
+onEvent evtHdl evt ao = event ao (\e -> evtHdl e ao) evt
 
 -------------------------------------------------------------------------------
 -- MESSAGING / DATA-FLOW
 -------------------------------------------------------------------------------
-dataFlow :: DataFlow d -> AgentOut m o d -> AgentOut m o d
+dataFlow :: DataFlow d -> AgentOut m o d e -> AgentOut m o d e
 dataFlow d ao = ao { aoData = d : aoData ao }
 
-dataFlowTo :: AgentId -> d -> AgentOut m o d -> AgentOut m o d
+dataFlowTo :: AgentId -> d -> AgentOut m o d e -> AgentOut m o d e
 dataFlowTo aid msg = dataFlow (aid, msg)
 
-dataFlows :: [DataFlow d] -> AgentOut m o d ->  AgentOut m o d
+dataFlows :: [DataFlow d] -> AgentOut m o d e ->  AgentOut m o d e
 dataFlows msgs ao = foldr dataFlow ao msgs
 
-broadcastDataFlow :: d -> [AgentId] -> AgentOut m o d -> AgentOut m o d
+broadcastDataFlow :: d -> [AgentId] -> AgentOut m o d e -> AgentOut m o d e
 broadcastDataFlow d receiverIds = dataFlows datas
   where
     n = length receiverIds
     ds = replicate n d
     datas = zip receiverIds ds
 
-hasDataFlow :: Eq d => d -> AgentIn o d -> Bool
+hasDataFlow :: Eq d => d -> AgentIn o d e -> Bool
 hasDataFlow d ai = Data.List.any ((==d) . snd) (aiData ai)
 
-onDataFlow :: (DataFlow d -> acc -> acc) -> AgentIn o d -> acc -> acc
+onDataFlow :: (DataFlow d -> acc -> acc) -> AgentIn o d e -> acc -> acc
 onDataFlow dataHdl ai a = foldr dataHdl a ds
   where
     ds = aiData ai
 
 onFilterDataFlow :: DataFilter d 
                  -> (DataFlow d -> acc -> acc) 
-                 -> AgentIn o d 
+                 -> AgentIn o d e 
                  -> acc 
                  -> acc
 onFilterDataFlow dataFilter dataHdl ai acc =
@@ -220,7 +239,7 @@ onFilterDataFlow dataFilter dataHdl ai acc =
 
 onDataFlowFrom :: AgentId 
                -> (DataFlow d -> acc -> acc) 
-               -> AgentIn o d 
+               -> AgentIn o d e 
                -> acc 
                -> acc
 onDataFlowFrom senderId datHdl ai acc = 
@@ -232,7 +251,7 @@ onDataFlowFrom senderId datHdl ai acc =
 onDataFlowType :: (Eq d) 
                => d 
                -> (DataFlow d -> acc -> acc) 
-               -> AgentIn o d 
+               -> AgentIn o d e 
                -> acc 
                -> acc
 onDataFlowType d datHdl ai acc = 
@@ -244,45 +263,45 @@ onDataFlowType d datHdl ai acc =
 -- OBSERVABLE STATE
 -------------------------------------------------------------------------------
 -- NOTE: assuming that state isJust
-agentObservable :: AgentOut m o d -> o
+agentObservable :: AgentOut m o d e -> o
 agentObservable = fromJust . aoObservable
 
 -- NOTE: assuming that state isJust
-updateAgentObservable :: (o -> o) -> AgentOut m o d -> AgentOut m o d
+updateAgentObservable :: (o -> o) -> AgentOut m o d e -> AgentOut m o d e
 updateAgentObservable f ao = 
   ao { aoObservable = Just $ f $ fromJust $ aoObservable ao }
 
-setAgentObservable :: o -> AgentOut m o d -> AgentOut m o d
+setAgentObservable :: o -> AgentOut m o d e -> AgentOut m o d e
 setAgentObservable o ao = updateAgentObservable (const o) ao
 
 -------------------------------------------------------------------------------
 -- Transactions
 -------------------------------------------------------------------------------
 -- AgentIn TX related
-isRequestTx :: AgentIn o d -> Bool
+isRequestTx :: AgentIn o d e -> Bool
 isRequestTx = isEvent . aiRequestTx
 
-requestTxData :: AgentIn o d -> DataFlow d
+requestTxData :: AgentIn o d e -> DataFlow d
 requestTxData = fromEvent . aiRequestTx
 
-requestTxIn :: AgentIn o d -> Event (DataFlow d)
+requestTxIn :: AgentIn o d e -> Event (DataFlow d)
 requestTxIn = aiRequestTx
 
 -- AgentOut TX related
 requestTx :: DataFlow d 
-          -> AgentTX m o d
-          -> AgentOut m o d 
-          -> AgentOut m o d
+          -> AgentTX m o d e
+          -> AgentOut m o d e 
+          -> AgentOut m o d e
 requestTx df txSf ao = ao { aoRequestTx = Event (df, txSf) }
 
 acceptTX :: d 
-         -> AgentTX m o d
-         -> AgentOut m o d 
-         -> AgentOut m o d
+         -> AgentTX m o d e
+         -> AgentOut m o d e 
+         -> AgentOut m o d e
 acceptTX d txSf ao = ao { aoAcceptTx = Event (d, txSf) }
 
 -- AgentTXOut related
-agentTXOut :: AgentTXOut m o d
+agentTXOut :: AgentTXOut m o d e
 agentTXOut = AgentTXOut
   {
     aoTxData    = Nothing
@@ -290,21 +309,21 @@ agentTXOut = AgentTXOut
   , aoTxAbort   = False
   }
 
-txDataOut :: d -> AgentTXOut m o d -> AgentTXOut m o d
+txDataOut :: d -> AgentTXOut m o d e -> AgentTXOut m o d e
 txDataOut d aoTx = aoTx { aoTxData = Just d }
 
-commitTx :: AgentOut m o d 
-         -> AgentTXOut m o d 
-         -> AgentTXOut m o d
+commitTx :: AgentOut m o d e 
+         -> AgentTXOut m o d e 
+         -> AgentTXOut m o d e
 commitTx ao aoTx = aoTx { aoTxCommit = Just (ao, Nothing) }
 
-commitTxWithCont :: AgentOut m o d 
-                 -> Agent m o d
-                 -> AgentTXOut m o d 
-                 -> AgentTXOut m o d
+commitTxWithCont :: AgentOut m o d e 
+                 -> AgentCont m o d e
+                 -> AgentTXOut m o d e 
+                 -> AgentTXOut m o d e
 commitTxWithCont ao sf aoTx = aoTx { aoTxCommit = Just (ao, Just sf) }
 
-abortTx :: AgentTXOut m o d -> AgentTXOut m o d
+abortTx :: AgentTXOut m o d e -> AgentTXOut m o d e
 abortTx aoTx = aoTx { aoTxAbort = True}
 
 -- AgentTXIn related
@@ -324,66 +343,54 @@ isAbortTX = aiTxAbort
 -------------------------------------------------------------------------------
 -- RECURSION
 -------------------------------------------------------------------------------
-agentRecursions :: AgentIn o d -> Event [Maybe o]
+agentRecursions :: AgentIn o d e -> Event [Maybe o]
 agentRecursions = aiRec
 
-recInitAllowed :: AgentIn o d -> Bool
+recInitAllowed :: AgentIn o d e -> Bool
 recInitAllowed = aiRecInitAllowed
 
-allowsRecOthers :: AgentOut m o d -> Bool
+allowsRecOthers :: AgentOut m o d e -> Bool
 allowsRecOthers = aoRecOthersAllowed
 
-recursive :: Bool -> AgentOut m o d -> AgentOut m o d
+recursive :: Bool -> AgentOut m o d e -> AgentOut m o d e
 recursive  allowOthers aout = 
   aout { aoRec = Event (), aoRecOthersAllowed = allowOthers }
 
-unrecursive :: AgentOut m o d -> AgentOut m o d
+unrecursive :: AgentOut m o d e -> AgentOut m o d e
 unrecursive aout = aout { aoRec = NoEvent }
 
-isRecursive :: AgentIn o d -> Bool
+isRecursive :: AgentIn o d e -> Bool
 isRecursive ain = isEvent $ aiRec ain
 
 -------------------------------------------------------------------------------
 -- UTILS
 -------------------------------------------------------------------------------
-startingAgentIn :: [AgentDef m o d] -> TVar Int -> [AgentIn o d]
-startingAgentIn adefs idGen = map (startingAgentInFromAgentDef idGen) adefs
-
-startingAgent :: [AgentDef m o d] 
-              -> TVar Int 
-              -> ([Agent m o d], [AgentIn o d])
-startingAgent adefs idGen = (sfs, ains)
+startingAgentInFromAgentDef :: AgentDef m o d e -> AgentIn o d e
+startingAgentInFromAgentDef ad = ai { aiData = adInitData ad }
   where
-    ains = startingAgentIn adefs idGen
-    sfs = map adBeh adefs 
+    ai = agentIn (adId ad) 
 
-startingAgentInFromAgentDef :: TVar Int -> AgentDef m o d -> AgentIn o d
-startingAgentInFromAgentDef idGen ad = ai { aiData = adInitData ad }
-  where
-    ai = agentIn (adId ad) idGen 
-
-agentIn :: AgentId -> TVar Int -> AgentIn o d 
-agentIn aid idGen = AgentIn 
-  { aiId              = aid
-  , aiIdGen           = idGen
-  , aiStart           = NoEvent
-  , aiData            = []
-  , aiRequestTx       = NoEvent
-  , aiRec             = NoEvent
-  , aiRecInitAllowed  = False
+agentIn :: AgentId -> AgentIn o d e 
+agentIn aid = AgentIn 
+  { aiId             = aid
+  , aiEvent          = NoEvent
+  , aiData           = []
+  , aiRequestTx      = NoEvent
+  , aiRec            = NoEvent
+  , aiRecInitAllowed = False
   }
 
 -------------------------------------------------------------------------------
 -- PRIVATE
 -------------------------------------------------------------------------------
-agentOutAux :: Maybe o -> AgentOut m o d
-agentOutAux o = 
-  AgentOut {  aoKill              = NoEvent
-            , aoCreate            = []
-            , aoData              = []
-            , aoRequestTx         = NoEvent
-            , aoAcceptTx          = NoEvent
-            , aoObservable        = o
-            , aoRec               = NoEvent
-            , aoRecOthersAllowed  = True
-            }
+agentOutAux :: Maybe o -> AgentOut m o d e
+agentOutAux o = AgentOut 
+  { aoKill             = NoEvent
+  , aoCreate           = []
+  , aoData             = []
+  , aoRequestTx        = NoEvent
+  , aoAcceptTx         = NoEvent
+  , aoObservable       = o
+  , aoRec              = NoEvent
+  , aoRecOthersAllowed = True
+  }

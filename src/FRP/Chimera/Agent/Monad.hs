@@ -1,7 +1,15 @@
-{-# LANGUAGE Arrows               #-}
-{-# LANGUAGE FlexibleContexts     #-}
 module FRP.Chimera.Agent.Monad 
-  (
+  ( 
+    nextAgentIdM
+
+  , scheduleEventM
+  , unscheduleEventM
+
+  , startingAgentM
+  
+  , ifThenElse
+  , ifThenElseM
+{-
     AgentMonadic
 
   , createAgentM
@@ -23,17 +31,83 @@ module FRP.Chimera.Agent.Monad
   , agentObservableFieldM
 
   , agentMonadic
-
-  , ifThenElse
-  , ifThenElseM
+-}
   ) where
 
-import Control.Monad
-import Control.Monad.State.Strict
-import FRP.BearRiver
+import           Control.Monad.State.Strict
+import qualified Data.PQueue.Min as PQ
+import           FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
 
+-------------------------------------------------------------------------------
+-- GENERAL
+-------------------------------------------------------------------------------
+nextAgentIdM :: Monad m 
+             => (ABSMonad m e) AgentId
+nextAgentIdM = do
+  aid <- gets absNextId
+  modify (\s -> s { absNextId = aid + 1})
+  return aid
+
+-------------------------------------------------------------------------------
+-- SCHEDULING
+-------------------------------------------------------------------------------
+scheduleEventM :: Monad m
+               => AgentId 
+               -> Event e
+               -> Double
+               -> (ABSMonad m e) EventId
+scheduleEventM aid e dt = do
+  q <- gets absEvtQueue
+  t <- gets absTime
+  eid <- gets absEvtIdx
+
+  let qe = QueueItem aid e (t + dt)
+  let q' = PQ.insert qe q
+
+  modify (\s -> s { absEvtQueue = q', absEvtIdx = eid + 1 })
+
+  return eid
+
+-- TODO: implement
+unscheduleEventM :: Monad m 
+                 => EventId
+                 -> (ABSMonad m e) Bool
+unscheduleEventM _eid = undefined
+-------------------------------------------------------------------------------
+-- UTILS
+-------------------------------------------------------------------------------
+startingAgentM :: Monad m 
+               => [AgentDef m o d e] 
+               -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
+startingAgentM adefs = do
+    sfs <- mapM adBeh adefs
+    let ains = map startingAgentInFromAgentDef adefs
+    return (sfs, ains)
+
+-------------------------------------------------------------------------------
+-- MONADIC UTILITIES
+-------------------------------------------------------------------------------
+ifThenElse :: Monad m 
+           => Bool 
+           -> m a 
+           -> m a 
+           -> m a
+ifThenElse p trueAction falseAction 
+  = if p then trueAction else falseAction
+
+ifThenElseM :: Monad m 
+            => m Bool 
+            -> m a 
+            -> m a 
+            -> m a
+ifThenElseM test trueAction falseAction 
+  = test >>= \t -> if t then trueAction else falseAction
+
+
+
+{-
 -- TODO: this is not general yet: need to run the whole monad stack
 type AgentMonadic m o d = Double -> AgentIn o d -> State (AgentOut m o d) ()
 
@@ -52,6 +126,7 @@ killM = state (\ao -> ((), kill ao))
 isDeadM :: MonadState (AgentOut m o d) m
         => StateT (AgentOut m o d) m Bool
 isDeadM = state (\ao -> (isDead ao, ao))
+
 
 -------------------------------------------------------------------------------
 -- MESSAGING / DATA-FLOW
@@ -199,12 +274,4 @@ agentMonadic f ao = proc ain -> do
   age <- time -< ()
   let (_, ao') = runState (f age ain) ao  
   returnA -< ao'
-
--------------------------------------------------------------------------------
--- MONADIC UTILITIES
--------------------------------------------------------------------------------
-ifThenElse :: Monad m => Bool -> m a -> m a -> m a
-ifThenElse p trueAction falseAction = if p then trueAction else falseAction
-
-ifThenElseM :: Monad m => m Bool -> m a -> m a -> m a
-ifThenElseM test trueAction falseAction = test >>= \t -> if t then trueAction else falseAction
+-}

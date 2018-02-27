@@ -1,47 +1,37 @@
-module FRP.Chimera.Simulation.Init 
+module FRP.Chimera.Simulation.Init where 
+{-
   (
-    IdGen
-  , SimulationParams (..)
+    SimulationParams (..)
 
   , initRng
   , initSimulation
-  , newAgentId
   ) where
 
-import Control.Concurrent.STM.TVar
 import Control.Monad.Random
 
 import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Internal
 
-type IdGen = TVar Int
-
 data SimulationParams = SimulationParams 
-  {
-    simShuffleAgents  :: Bool
-  , simRng            :: StdGen
-  , simIdGen          :: IdGen
+  { simShuffleAgents :: Bool
+  , simRng           :: StdGen
   }
 
-initSimulation :: Bool
+initSimulation :: RandomGen g
+               => Bool
                -> Maybe Int
-               -> IO SimulationParams
+               -> Rand g SimulationParams
 initSimulation shuffAs rngSeed = do
   initRng rngSeed
 
   rng <- getSplit
-  agentIdVar <- newTVarIO 0
 
   return SimulationParams {
-      simShuffleAgents = shuffAs
-    , simRng = rng
-    , simIdGen = agentIdVar
-    }
+    simShuffleAgents = shuffAs
+  , simRng = rng
+  }
 
-newAgentId :: SimulationParams -> AgentId
-newAgentId SimulationParams { simIdGen = idGen } = 
-  incrementAtomicallyUnsafe idGen
-
-initRng :: Maybe Int -> IO ()
-initRng Nothing       = return ()
-initRng (Just seed)   = setStdGen $ mkStdGen seed
+initRng :: Maybe Int -> Rand g ()
+initRng Nothing     = return ()
+initRng (Just seed) = setStdGen $ mkStdGen seed
+-}

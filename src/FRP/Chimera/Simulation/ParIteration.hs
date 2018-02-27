@@ -5,14 +5,16 @@ module FRP.Chimera.Simulation.ParIteration
     simulatePar
   ) where
 
-import Control.Parallel.Strategies
+import           Control.Monad
+import           Control.Monad.Trans.Class
+import           Control.Parallel.Strategies
 import qualified Data.Map as Map
-import FRP.BearRiver
+import           FRP.BearRiver
 
-import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Simulation.Common
-import FRP.Chimera.Simulation.Init
-import FRP.Chimera.Simulation.Running
+import           FRP.Chimera.Agent.Interface
+import           FRP.Chimera.Agent.Monad
+import           FRP.Chimera.Simulation.Common
+import           FRP.Chimera.Simulation.Running
 --import FRP.Chimera.Simulation.Transaction
 
 -- | Steps the simulation using a parallel update-strategy. 
@@ -36,20 +38,19 @@ import FRP.Chimera.Simulation.Running
 -- yet, they are known already to the system and will run in the next step).
 
 -- for internal use only
-type FeedbackData m o d = (SimulationParams, [Agent m o d], [AgentIn o d])
+type FeedbackData m o d e = ([AgentCont m o d e], [AgentIn o d e])
 
 simulatePar :: Monad m
-            => SimulationParams
-            -> [Agent m o d]
-            -> [AgentIn o d]
-            -> SF m () (SimulationStepOut o)
-simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
+            => [AgentCont m o d e]
+            -> [AgentIn o d e]
+            -> SF (ABSMonad m e) () (SimulationStepOut o)
+simulatePar sfs0 ins0 = loopPre (sfs0, ins0) simulateParAux
   where
     simulateParAux :: Monad m 
-                   => SF m 
-                        ((), FeedbackData m o d)
-                        ((SimulationStepOut o), FeedbackData m o d)
-    simulateParAux = proc (_, (params, sfs, ins)) -> do
+                   => SF (ABSMonad m e)
+                        ((), FeedbackData m o d e)
+                        (SimulationStepOut o, FeedbackData m o d e)
+    simulateParAux = proc (_, (sfs, ins)) -> do
       -- iterate agents in parallel
       (sfs', outs) <- runAgents -< (sfs, ins)
 
@@ -61,11 +62,9 @@ simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
       -- runTransactions -< 
 
       -- create next inputs and sfs (distribute messages and add/remove new/killed agents)
-      let (sfs'', ins') = nextStep ins outs sfs'
+      (sfs'', ins') <- arrM (\(ins, outs, sfs') -> lift $ nextStep ins outs sfs') -< (ins, outs, sfs')
       -- create observable outputs
       let obs = observableAgents (map aiId ins) outs
-
-      
 
       {-
       -- TODO: do NOT shuffle => must not make a difference
@@ -75,67 +74,72 @@ simulatePar p0 sfs0 ins0 = loopPre (p0, sfs0, ins0) simulateParAux
 
       t <- time -< ()
 
-      returnA -< ((t, obs), (params, sfs'', ins'))
+      returnA -< ((t, obs), (sfs'', ins'))
 
-nextStep :: [AgentIn o d]
-         -> [AgentOut m o d]
-         -> [Agent m o d]
-         -> ([Agent m o d], [AgentIn o d])
-nextStep oldAgentIns newAgentOuts asfs = (asfs', newAgentIns')
-  where
-    (asfs', newAgentIns) = processAgents asfs oldAgentIns newAgentOuts
+nextStep :: Monad m 
+         => [AgentIn o d e]
+         -> [AgentOut m o d e]
+         -> [AgentCont m o d e]
+         -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
+nextStep oldAgentIns newAgentOuts asfs = do
+    (asfs', newAgentIns) <- processAgents asfs oldAgentIns newAgentOuts
+
     -- NOTE: need to use oldAgentIns as each index corresponds to the agent in newAgentOuts
-    newAgentOutsWithAis = map (\(ai, ao) -> (aiId ai, ao)) (zip oldAgentIns newAgentOuts) 
-    newAgentIns' = distributeData newAgentIns newAgentOutsWithAis
+    let newAgentOutsWithAis = map (\(ai, ao) -> (aiId ai, ao)) (zip oldAgentIns newAgentOuts) 
+        newAgentIns'        = distributeData newAgentIns newAgentOutsWithAis
 
-    processAgents :: [Agent m o d]
-                  -> [AgentIn o d]
-                  -> [AgentOut m o d]
-                  -> ([Agent m o d], [AgentIn o d])
-    processAgents asfs oldIs newOs = foldr handleAgent ([], []) asfsIsOs
+    return (asfs', newAgentIns')
+  where
+    processAgents :: Monad m
+                  => [AgentCont m o d e]
+                  -> [AgentIn o d e]
+                  -> [AgentOut m o d e]
+                  -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
+    processAgents asfs oldIs newOs = foldM handleAgent ([], []) asfsIsOs
       where
         asfsIsOs = zip3 asfs oldIs newOs
 
-        handleAgent :: (Agent m o d, AgentIn o d, AgentOut m o d)
-                    -> ([Agent m o d], [AgentIn o d])
-                    -> ([Agent m o d], [AgentIn o d])
-        handleAgent a@(_, oldIn, newOut) acc = handleKillOrLiveAgent acc' a
-          where
-            idGen = aiIdGen oldIn
-            acc' = handleCreateAgents idGen newOut acc 
+        handleAgent :: Monad m
+                    => ([AgentCont m o d e], [AgentIn o d e])
+                    -> (AgentCont m o d e, AgentIn o d e, AgentOut m o d e)
+                    -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
+        handleAgent acc a@(_, _, newOut) = do
+            acc' <- handleCreateAgents newOut acc 
+            return $ handleKillOrLiveAgent acc' a  
 
-        handleKillOrLiveAgent :: ([Agent m o d], [AgentIn o d])
-                              -> (Agent m o d, AgentIn o d, AgentOut m o d)
-                              -> ([Agent m o d], [AgentIn o d])
+        handleKillOrLiveAgent :: ([AgentCont m o d e], [AgentIn o d e])
+                              -> (AgentCont m o d e, AgentIn o d e, AgentOut m o d e)
+                              -> ([AgentCont m o d e], [AgentIn o d e])
         handleKillOrLiveAgent acc@(asfsAcc, ainsAcc) (sf, oldIn, newOut)
             | killAgent = acc
             | otherwise = (sf : asfsAcc, newIn : ainsAcc) 
           where
             killAgent = isEvent $ aoKill newOut
-            newIn = agentIn (aiId oldIn) (aiIdGen oldIn) 
+            newIn = agentIn (aiId oldIn)
 
-handleCreateAgents :: IdGen
-                   -> AgentOut m o d
-                   -> ([Agent m o d], [AgentIn o d])
-                   -> ([Agent m o d], [AgentIn o d])
-handleCreateAgents idGen ao acc@(asfsAcc, ainsAcc) 
-    | not $ null newAgentDefs = (asfsAcc ++ newSfs, ainsAcc ++ newAis)
-    | otherwise = acc
-  where
-    newAgentDefs = aoCreate ao
-    newSfs = map adBeh newAgentDefs
-    newAis = map (startingAgentInFromAgentDef idGen) newAgentDefs
+handleCreateAgents :: Monad m
+                   => AgentOut m o d e
+                   -> ([AgentCont m o d e], [AgentIn o d e])
+                   -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
+handleCreateAgents ao acc@(asfsAcc, ainsAcc) = do
+    let newAgentDefs = aoCreate ao
 
-distributeData :: [AgentIn o d] 
-               -> [(AgentId, AgentOut m o d)] 
-               -> [AgentIn o d]
+    (newSfs, newAis) <- startingAgentM newAgentDefs
+
+    if not $ null newAgentDefs 
+      then return (asfsAcc ++ newSfs, ainsAcc ++ newAis)
+      else return acc
+  
+distributeData :: [AgentIn o d e] 
+               -> [(AgentId, AgentOut m o d e)] 
+               -> [AgentIn o d e]
 distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE: speedup by running in parallel (if +RTS -Nx)
   where
     allData = collectAllData aouts
 
     distributeDataAux :: Map.Map AgentId [DataFlow d]
-                      -> AgentIn o d
-                      -> AgentIn o d
+                      -> AgentIn o d e
+                      -> AgentIn o d e
     distributeDataAux allData ain = ain'
       where
         receiverId = aiId ain
@@ -146,10 +150,10 @@ distributeData ains aouts = parMap rpar (distributeDataAux allData) ains -- NOTE
 
         ain' = ain { aiData = ds' }
 
-collectAllData :: [(AgentId, AgentOut m o d)] -> Map.Map AgentId [DataFlow d]
+collectAllData :: [(AgentId, AgentOut m o d e)] -> Map.Map AgentId [DataFlow d]
 collectAllData aos = foldr collectAllDataAux Map.empty aos
   where
-    collectAllDataAux :: (AgentId, AgentOut m o d)
+    collectAllDataAux :: (AgentId, AgentOut m o d e)
                       -> Map.Map AgentId [DataFlow d]
                       -> Map.Map AgentId [DataFlow d]
     collectAllDataAux (senderId, ao) accData 

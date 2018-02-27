@@ -1,4 +1,6 @@
-module FRP.Chimera.Simulation.Internal 
+module FRP.Chimera.Simulation.Internal where
+
+{-
   ( 
     incrementAtomically
   , incrementAtomicallyUnsafe
@@ -16,7 +18,7 @@ incrementAtomically var = do
 incrementAtomicallyUnsafe :: TVar Int -> Int
 incrementAtomicallyUnsafe = unsafePerformIO  . atomically . incrementAtomically
 
-{-
+
 import System.IO
 import System.IO.Unsafe
 import System.Random

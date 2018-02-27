@@ -27,8 +27,8 @@ import FRP.Chimera.Environment.Network
 import FRP.Chimera.Random.Stream
 import FRP.Chimera.Reactive.Extensions 
 
-type DataSource m o d = SF m (AgentIn o d) (DataFlow d)
-type DataFlowSF m o d = SF m (AgentIn o d) [DataFlow d]
+type DataSource m o d e s = SF (ABSMonad m e) (AgentIn o d e) (DataFlow d)
+type DataFlowSF m o d e s = SF (ABSMonad m e) (AgentIn o d e) [DataFlow d]
 
 -- TODO: dataFlowRepeatedly
 -- TODO: dataFlowAfter
@@ -38,18 +38,18 @@ type DataFlowSF m o d = SF m (AgentIn o d) [DataFlow d]
 dataFlowOccasionally :: MonadRandom m
                      => Double
                      -> DataFlow d
-                     -> DataFlowSF m o d
+                     -> DataFlowSF m o d e s
 dataFlowOccasionally rate d = dataFlowOccasionallySrc rate (constDataSource d)
 
 dataFlowOccasionallySrc :: MonadRandom m
                         => Double
-                        -> DataSource m o d 
-                        -> DataFlowSF m o d
+                        -> DataSource m o d e s 
+                        -> DataFlowSF m o d e s
 dataFlowOccasionallySrc rate dfSrc = proc ain -> do
   sendEvt <- occasionally rate () -< ()
   if isEvent sendEvt 
     then (do
-      d <-  dfSrc -< ain
+      d <- dfSrc -< ain
       returnA -< [d])
     else returnA  -< []
 
@@ -57,14 +57,14 @@ dataFlowOccasionallySS :: MonadRandom m
                        => Double
                        -> Int
                        -> DataFlow d
-                       -> DataFlowSF m o d
+                       -> DataFlowSF m o d e s
 dataFlowOccasionallySS rate ss d = dataFlowOccasionallySrcSS rate ss (constDataSource d)
 
 dataFlowOccasionallySrcSS :: MonadRandom m
                           => Double
                           -> Int
-                          -> DataSource m o d 
-                          -> DataFlowSF m o d
+                          -> DataSource m o d e s 
+                          -> DataFlowSF m o d e s
 dataFlowOccasionallySrcSS rate ss dfSrc = proc ain -> do
     sendEvtsSS <- superSamplingUniform ss (occasionally rate ())    -< ()
     dfSS       <- superSamplingUniform ss dfSrc                     -< ain
@@ -80,16 +80,16 @@ dataFlowOccasionallySrcSS rate ss dfSrc = proc ain -> do
 -------------------------------------------------------------------------------
 -- MESSAGE-Sources
 -------------------------------------------------------------------------------
-constDataReceiverSource :: Monad m => d -> AgentId -> DataSource m o d
+constDataReceiverSource :: Monad m => d -> AgentId -> DataSource m o d e s
 constDataReceiverSource d receiver = constant (receiver, d)
 
-constDataSource :: Monad m => DataFlow d -> DataSource m o d
+constDataSource :: Monad m => DataFlow d -> DataSource m o d e s
 constDataSource = constant
 
 randomNeighbourNodeMsgSource :: MonadRandom m
                              => Network l
                              -> d
-                             -> DataSource m o d
+                             -> DataSource m o d e s
 randomNeighbourNodeMsgSource e d = proc ain -> do
   let aid = agentId ain
   randNode <- arrM (\aid -> do
@@ -103,7 +103,7 @@ randomNeighbourCellMsgSource :: MonadRandom m
                              -> Discrete2dCoord
                              -> d 
                              -> Bool 
-                             -> DataSource m o d 
+                             -> DataSource m o d e s 
 randomNeighbourCellMsgSource e pos d ic = proc _ -> do
   -- pos <- arrM_ (posFunc <$> lift agentObservableM) -< ()
   randCell <- arrM (\(pos, e) -> do
@@ -115,7 +115,7 @@ randomAgentIdMsgSource :: MonadRandom m
                        => [AgentId]
                        -> d
                        -> Bool 
-                       -> DataSource m o d 
+                       -> DataSource m o d e s 
 randomAgentIdMsgSource agentIds d ignoreSelf = proc ain -> do
   let aid = agentId ain
   randAid <- randomElemS_ -< agentIds

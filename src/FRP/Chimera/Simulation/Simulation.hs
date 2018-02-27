@@ -14,6 +14,7 @@ module FRP.Chimera.Simulation.Simulation
   ) where
 
 import Control.Monad.Trans.MSF.Reader
+import Control.Monad.State.Strict
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
@@ -44,16 +45,15 @@ simulateIOInit adefs e params iterFunc = reactInit (return ()) iterFunc (simulat
 -------------------------------------------------------------------------------
 
 simulateTime :: Monad m
-             => [AgentDef m o d]
-             -> SimulationParams
+             => [AgentDef m o d e]
              -> DTime
              -> Time
              -> m [SimulationStepOut o]
-simulateTime adefs params dt t = agrs
+simulateTime adefs dt t = agrs
   where
     steps = floor $ t / dt
     ticks = replicate steps ()
-    aossM = embed (simulate params adefs) ticks
+    aossM = embed (simulate adefs) ticks
     agrs = runReaderT aossM dt
 
   {-
@@ -83,21 +83,23 @@ simulateAggregateTimeDeltas adefs e params dts aggrFun = seq agrs agrs -- optimi
 -}
 
 simulateAggregateTime :: Monad m
-                      => [AgentDef m o d]
-                      -> SimulationParams
+                      => [AgentDef m o d e]
                       -> DTime
                       -> Time
                       -> AgentObservableAggregator o a
-                      -> m [a]
-simulateAggregateTime adefs params dt t aggrFun = seq agrs agrs -- optimization
+                      -> (m [a] -> [a])
+                      -> [a]
+simulateAggregateTime adefs dt t runM aggrFun = seq aoss aoss -- optimization
   where
     steps = floor $ t / dt
     ticks = replicate steps ()
     agrSf = arr aggrFun
-    sf = simulate params adefs >>> agrSf
+    sf    = simulate adefs >>> agrSf
 
-    aossM = embed sf ticks
-    agrs = runReaderT aossM dt
+    aossDt  = embed sf ticks
+    aossAbs = runReaderT aossDt dt
+    aossM   = runStateT aossAbs absState
+    (aoss, absStateFinal) = runM aossM
 
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -151,12 +153,10 @@ instance Pred (FooPred s e) () (SimulationStepOut o) where
 
 ----------------------------------------------------------------------------------------------------------------------
 simulate :: Monad m
-         => SimulationParams
-         -> [AgentDef m o d]
-         -> SF m () (SimulationStepOut o)
-simulate params adefs = simulatePar params asfs ais
+         => [AgentDef m o d e]
+         -> SF (ABSMonad m e) () (SimulationStepOut o)
+simulate adefs = simulatePar asfs ais
   where
     asfs = map adBeh adefs
-    idGen = simIdGen params
-    ais = startingAgentIn adefs idGen
+    ais = map startingAgentInFromAgentDef adefs
 ----------------------------------------------------------------------------------------------------------------------

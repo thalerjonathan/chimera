@@ -1,10 +1,9 @@
-{-# LANGUAGE Arrows #-}
 module FRP.Chimera.Simulation.Common 
   (
     AgentObservable
   , SimulationStepOut
 
-  , shuffleAgents
+  --, shuffleAgents
   , observableAgents
   ) where
 
@@ -13,12 +12,13 @@ import Data.Maybe
 import FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Random.Pure
-import FRP.Chimera.Simulation.Init
+--import FRP.Chimera.Random.Pure
+--import FRP.Chimera.Simulation.Init
 
-type AgentObservable o      = (AgentId, o)
-type SimulationStepOut o    = (Time, [AgentObservable o])
+type AgentObservable o   = (AgentId, o)
+type SimulationStepOut o = (Time, [AgentObservable o])
 
+{-
 shuffleAgents :: SimulationParams 
               -> [a]
               -> [b]
@@ -35,14 +35,15 @@ shuffleAgents params as bs
 
     params' = params { simRng = g' }
     (as', bs') = unzip shuffledSfsIns
+-}
 
 observableAgents :: [AgentId] 
-                 -> [AgentOut m o d] 
+                 -> [AgentOut m o d e] 
                  -> [AgentObservable o]
 observableAgents ais aos = foldl observableAgents [] (zip ais aos)
   where
     observableAgents :: [AgentObservable o] 
-                     -> (AgentId, AgentOut m o d) 
+                     -> (AgentId, AgentOut m o d e) 
                      -> [AgentObservable o] 
     observableAgents acc (aid, ao) 
         | isJust mayObs = (aid, fromJust mayObs) : acc
