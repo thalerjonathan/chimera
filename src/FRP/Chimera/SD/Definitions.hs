@@ -33,19 +33,19 @@ import FRP.Chimera.Agent.Interface
 import FRP.Chimera.Simulation.Common 
 import FRP.Chimera.Simulation.Simulation
 
-data SDMsg          = Value Double deriving (Eq, Show)
-type SDStockState   = Double
-type StockId        = AgentId
-type FlowId         = AgentId
+data SDMsg        = Value Double deriving (Eq, Show)
+type SDStockState = Double
+type StockId      = AgentId
+type FlowId       = AgentId
 
-type SDDef          = AgentDef Identity SDStockState SDMsg ()
-type SD             = Agent Identity SDStockState SDMsg ()
-type SDIn           = AgentIn SDStockState SDMsg ()
-type SDOut          = AgentOut Identity SDStockState SDMsg ()
-type SDObservable   = AgentObservable SDStockState
+type SDDef        = AgentDef Identity SDStockState SDMsg ()
+type SD           = Agent Identity SDStockState SDMsg ()
+type SDIn         = AgentIn SDStockState SDMsg ()
+type SDOut        = AgentOut Identity SDStockState SDMsg ()
+type SDObservable = AgentObservable SDStockState
 
-type Stock          = Double -> SD
-type Flow           = SD
+type Stock        = Double -> SD
+type Flow         = SD
 
 createStock :: AgentId 
             -> SDStockState

@@ -15,21 +15,8 @@ build-type:        Simple
 -------------------------------------------------------------------------------
 -- EXECUTABLES 
 -------------------------------------------------------------------------------
-executable AgentZero
-  main-is:         Main.hs
-  hs-source-dirs:  ABS/AgentZero/
-  build-depends:   base, 
-                    chimera, 
-                    dunai,
-                    bearriver,
-                    parallel,
-                    MonadRandom,
-                    gloss,
-                    random,
-                    fgl
-                    
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded -fno-warn-unused-top-binds
-  
+
+
 
 executable SDSir
   main-is:         Main.hs
@@ -47,33 +34,6 @@ executable SDSir
 
   ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
 
-executable FrSIR
-  main-is:         Main.hs
-  hs-source-dirs:
-    .,
-    ABS/SIRExamples/FrSIR/,
-    ABS/SIRExamples/Utils/
-  build-depends:   base, 
-                    chimera, 
-                    dunai,
-                    bearriver,
-                    parallel,
-                    MonadRandom,
-                    mtl
-
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
-
-executable NewAgents
-  main-is:         Main.hs
-  hs-source-dirs:  ABS/NewAgents/
-
-  build-depends:   base, 
-                    chimera, 
-                    dunai,
-                    bearriver,
-                    parallel
-
-  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
 
 -------------------------------------------------------------------------------
 -- TEST-SUITES
