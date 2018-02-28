@@ -4,7 +4,7 @@ module Main
 
   , runFrSIRStepsAndWriteToFile
   -- , runFrSIRDeltasAndWriteToFile
-  , runFrSIRReplicationsAndWriteToFile
+  --, runFrSIRReplicationsAndWriteToFile
   ) where
 
 import Control.Monad.Random
@@ -15,9 +15,6 @@ import Init
 import Model
 import Sir
 
-shuffleAgents :: Bool
-shuffleAgents = False
-
 rngSeed :: Int
 rngSeed = 42
 
@@ -25,17 +22,18 @@ dt :: DTime
 dt = 0.1
 
 t :: DTime
-t = 20
+t = 50
 
 agentCount :: Int
 agentCount = 100
 
 numInfected :: Int
-numInfected = 1
+numInfected = 10
 
 main :: IO () 
 main = runFrSIRStepsAndWriteToFile
 
+{-
 replCfg :: RandomGen g 
         => FrSIREnvironment
         -> FrSIRReplicationConfig g
@@ -43,23 +41,24 @@ replCfg env = ReplicationConfig {
     replCfgCount = 4
   , replCfgAgentReplicator = sirAgentDefReplicator env numInfected
   }
+-}
 
 runFrSIRStepsAndWriteToFile :: IO ()
-runFrSIRStepsAndWriteToFile = do
-  params <- initSimulation shuffleAgents (Just rngSeed)
+runFrSIRStepsAndWriteToFile = writeSirDynamicsFile fileName dt 0 dynamics
+  where
+    g0 = mkStdGen rngSeed
+    ((adefs, _), g) = runRand (createFrSIRNumInfected agentCount numInfected) g0
   
-  (initAdefs, _) <- createFrSIRNumInfected agentCount numInfected
-  
-  g <- getStdGen
-  let randMs = simulateAggregateTime initAdefs params dt t aggregate
-  let dynamics = evalRand randMs g
+    aossRand = simulateTime adefs dt t
+    aoss     = evalRand aossRand g
+    dynamics = map aggregate aoss
 
-  let fileName = "frSIRDynamics_" 
+    fileName = "frSIRDynamics_" 
                   ++ show agentCount ++ "agents_" 
                   ++ show t ++ "time_"
                   ++ show dt ++ "dt.m"
 
-  writeSirDynamicsFile fileName dt 0 dynamics
+  
 
   {-
 runFrSIRDeltasAndWriteToFile :: IO ()
@@ -80,7 +79,7 @@ runFrSIRDeltasAndWriteToFile = do
                   ++ show dt ++ "dt.m"
 
   writeSirDynamicsFile fileName dt 0 dynamics
--}
+
 
 runFrSIRReplicationsAndWriteToFile :: IO ()
 runFrSIRReplicationsAndWriteToFile = do
@@ -102,6 +101,7 @@ runFrSIRReplicationsAndWriteToFile = do
                   ++ show (replCfgCount rc) ++ "replications.m"
 
   writeSirDynamicsFile fileName dt (replCfgCount rc) dynamics
+-}
 
 -------------------------------------------------------------------------------
 -- UTILS

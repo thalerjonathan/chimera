@@ -9,6 +9,7 @@ module Model
   , FrSIRAgentMonad
   
   , FrSIRAgent
+  , FrSIRAgentCont
   , FrSIRAgentDef
   , FrSIRAgentIn
   , FrSIRAgentOut
@@ -43,19 +44,19 @@ type FrSIRAgentState  = SIRState
 -- deal with big (>10.000 nodes) complete networks as it sucks up massive memory. 
 type FrSIREnvironment = [AgentId]
 
+type FrSIREvent = ()
 type FrSIRAgentMonad g         = Rand g
--- TODO: seems not to work as intended...
---type FrSIRAgentMonad g         = AgentRandomMonad g FrSIRAgentState FrSIRData
 
-type FrSIRAgentDef g           = AgentDef (FrSIRAgentMonad g) FrSIRAgentState FrSIRData 
-type FrSIRAgent g              = AgentRandom g FrSIRAgentState FrSIRData
-type FrSIRAgentIn              = AgentIn FrSIRAgentState FrSIRData
-type FrSIRAgentOut g           = AgentOut (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
-type FrSIRAgentObservable      = AgentObservable FrSIRAgentState
+type FrSIRAgent g              = Agent     (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentCont g          = AgentCont (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentDef g           = AgentDef  (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentIn              = AgentIn                       FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentOut g           = AgentOut  (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentObservable      = AgentObservable               FrSIRAgentState
 
-type FrSIREventSource g a      = EventSource (FrSIRAgentMonad g) FrSIRAgentState FrSIRData a
-type FrSIRReplicationConfig g  = ReplicationConfig (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
-type FrSIRAgentDefReplicator g = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData
+type FrSIREventSource g a      = EventSource        (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent a
+type FrSIRReplicationConfig g  = ReplicationConfig  (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
+type FrSIRAgentDefReplicator g = AgentDefReplicator (FrSIRAgentMonad g) FrSIRAgentState FrSIRData FrSIREvent
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -74,9 +75,9 @@ illnessDuration = 15
 
 -- number of super-samples for contact-rate: because of high contact rate per time-unit we need an even higher number of samples
 contactSS :: Int
-contactSS = 1 -- 20
+contactSS = 20
 
 -- number of super-samples for illness duration time-out: because the duration is quite long on average we can sample it with low frequency (low number of samples)
 illnessTimeoutSS :: Int
-illnessTimeoutSS = 1 -- 2
+illnessTimeoutSS = 2
 -------------------------------------------------------------------------------

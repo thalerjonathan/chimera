@@ -110,7 +110,7 @@ type ABSMonad m e = StateT (ABSState e) m
 -- in RandT) they may not need e.g. there are models which do not need a global read/write environment
 -- or event don't use randonmness (e.g. SD emulation)
 type AgentCont m o d e = SF (ABSMonad m e) (AgentIn o d e) (AgentOut m o d e)
-type Agent m o d e = (ABSMonad m e) (AgentCont m o d e)
+type Agent m o d e     = (ABSMonad m e) (AgentCont m o d e)
 
 type AgentTX m o d e = SF (ABSMonad m e) (AgentTXIn d) (AgentTXOut m o d e)
 

@@ -6,6 +6,7 @@ module FRP.Chimera
   , DataFilter
 
   , Agent
+  , AgentCont
   , AgentTX
 
   , AgentDef (..)
@@ -60,6 +61,8 @@ module FRP.Chimera
   -- FRP.Chimera.Agent.Monad
   , nextAgentIdM
 
+  , onDataFlowM
+  
   , scheduleEventM
   , unscheduleEventM
 

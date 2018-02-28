@@ -2,6 +2,8 @@ module FRP.Chimera.Agent.Monad
   ( 
     nextAgentIdM
 
+  , onDataFlowM
+
   , scheduleEventM
   , unscheduleEventM
 
@@ -16,7 +18,7 @@ module FRP.Chimera.Agent.Monad
   , killM
   , isDeadM
 
-  , dataFlowM
+
   , dataFlowToM
   , dataFlowsM
   , broadcastDataFlowM
@@ -49,6 +51,18 @@ nextAgentIdM = do
   aid <- gets absNextId
   modify (\s -> s { absNextId = aid + 1})
   return aid
+
+-------------------------------------------------------------------------------
+-- MESSAGING / DATA-FLOW
+-------------------------------------------------------------------------------
+onDataFlowM :: Monad m
+            => (acc -> DataFlow d-> m acc) 
+            -> AgentIn o d e
+            -> acc 
+            -> m acc
+onDataFlowM dfHdl ai acc = foldM dfHdl acc dfs
+  where
+    dfs = aiData ai
 
 -------------------------------------------------------------------------------
 -- SCHEDULING
@@ -128,9 +142,6 @@ isDeadM :: MonadState (AgentOut m o d) m
 isDeadM = state (\ao -> (isDead ao, ao))
 
 
--------------------------------------------------------------------------------
--- MESSAGING / DATA-FLOW
--------------------------------------------------------------------------------
 dataFlowM :: Monad m
           => DataFlow d
           -> StateT (AgentOut m o d) m ()
@@ -166,15 +177,7 @@ onDataFlowMState :: MonadState acc m
                  -> m ()
 onDataFlowMState dfHdl ai = onDataFlowM (\_ df -> dfHdl df) ai ()
 
-onDataFlowM :: Monad m
-            => (acc -> DataFlow d-> m acc) 
-            -> AgentIn o d
-            -> acc 
-            -> m acc
-onDataFlowM dfHdl ai acc = foldM dfHdl acc dfs
-  where
-    dfs = aiData ai
-   
+ 
 -------------------------------------------------------------------------------
 -- OBSERVABLE STATE
 -------------------------------------------------------------------------------

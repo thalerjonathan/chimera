@@ -16,6 +16,21 @@ build-type:        Simple
 -- EXECUTABLES 
 -------------------------------------------------------------------------------
 
+executable FrSIR
+  main-is:         Main.hs
+  hs-source-dirs:
+    .,
+    ABS/SIRExamples/FrSIR/,
+    ABS/SIRExamples/Utils/
+  build-depends:   base, 
+                    chimera, 
+                    dunai,
+                    bearriver,
+                    parallel,
+                    MonadRandom,
+                    mtl
+
+  ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -fno-warn-missing-home-modules -threaded
 
 
 executable SDSir
