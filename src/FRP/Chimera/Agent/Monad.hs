@@ -69,8 +69,8 @@ onDataFlowM dfHdl ai acc = foldM dfHdl acc dfs
 -------------------------------------------------------------------------------
 scheduleEventM :: Monad m
                => AgentId 
-               -> Event e
-               -> Double
+               -> e
+               -> DTime
                -> (ABSMonad m e) EventId
 scheduleEventM aid e dt = do
   q <- gets absEvtQueue
@@ -96,7 +96,7 @@ startingAgentM :: Monad m
                => [AgentDef m o d e] 
                -> (ABSMonad m e) ([AgentCont m o d e], [AgentIn o d e])
 startingAgentM adefs = do
-    sfs <- mapM adBeh adefs
+    sfs <- mapM (\ad -> adBeh ad (adId ad)) adefs
     let ains = map startingAgentInFromAgentDef adefs
     return (sfs, ains)
 

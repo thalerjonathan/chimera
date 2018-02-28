@@ -5,6 +5,8 @@ module FRP.Chimera
   , DataFlow
   , DataFilter
 
+  , ABSMonad
+  
   , Agent
   , AgentCont
   , AgentTX
@@ -21,7 +23,9 @@ module FRP.Chimera
   , agentOutObservable
 
   , onEvent
-
+  , hasEvent
+  , extractEvent
+  
   , dataFlow
   , dataFlowTo
   , dataFlows

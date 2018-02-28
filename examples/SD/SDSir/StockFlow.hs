@@ -18,7 +18,7 @@ import Model
 -- STOCKS
 ------------------------------------------------------------------------------------------------------------------------
 susceptibleStock :: Stock
-susceptibleStock initValue = return $ proc ain -> do
+susceptibleStock initValue _ = return $ proc ain -> do
   let infectionRate = flowInFrom infectionRateFlowId ain
 
   stockValue <- (initValue+) ^<< integral -< (-infectionRate)
@@ -29,7 +29,7 @@ susceptibleStock initValue = return $ proc ain -> do
   returnA -< ao'
 
 infectiousStock :: Stock
-infectiousStock initValue = return $ proc ain -> do
+infectiousStock initValue _ = return $ proc ain -> do
   let infectionRate = flowInFrom infectionRateFlowId ain
       recoveryRate  = flowInFrom recoveryRateFlowId ain
 
@@ -42,7 +42,7 @@ infectiousStock initValue = return $ proc ain -> do
   returnA -< ao''
 
 recoveredStock :: Stock
-recoveredStock initValue = return $ proc ain -> do
+recoveredStock initValue _ = return $ proc ain -> do
   let recoveryRate = flowInFrom recoveryRateFlowId ain
 
   stockValue <- (initValue+) ^<< integral -< recoveryRate
@@ -54,7 +54,7 @@ recoveredStock initValue = return $ proc ain -> do
 -- FLOWS
 ------------------------------------------------------------------------------------------------------------------------
 infectionRateFlow :: Flow
-infectionRateFlow = return $ proc ain -> do
+infectionRateFlow _ = return $ proc ain -> do
   let susceptible = stockInFrom susceptibleStockId ain 
       infectious  = stockInFrom infectiousStockId ain
 
@@ -66,7 +66,7 @@ infectionRateFlow = return $ proc ain -> do
   returnA -< ao'
 
 recoveryRateFlow :: Flow
-recoveryRateFlow = return $ proc ain -> do
+recoveryRateFlow _ = return $ proc ain -> do
   let infectious = stockInFrom infectiousStockId ain
       flowValue  = infectious / avgIllnessDuration
 

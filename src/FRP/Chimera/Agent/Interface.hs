@@ -31,6 +31,7 @@ module FRP.Chimera.Agent.Interface
 
   , onEvent
   , hasEvent
+  , extractEvent
 
   , dataFlow
   , dataFlowTo
@@ -84,7 +85,7 @@ type DataFlow d   = (AgentId, d)
 type DataFilter d = DataFlow d -> Bool
 
 type EventId      = Integer
-data QueueItem e  = QueueItem AgentId (Event e) Time deriving Show
+data QueueItem e  = QueueItem AgentId e Time deriving Show
 type EventQueue e = PQ.MinQueue (QueueItem e)
 
 instance Eq (QueueItem e) where
@@ -110,7 +111,7 @@ type ABSMonad m e = StateT (ABSState e) m
 -- in RandT) they may not need e.g. there are models which do not need a global read/write environment
 -- or event don't use randonmness (e.g. SD emulation)
 type AgentCont m o d e = SF (ABSMonad m e) (AgentIn o d e) (AgentOut m o d e)
-type Agent m o d e     = (ABSMonad m e) (AgentCont m o d e)
+type Agent m o d e     = AgentId -> (ABSMonad m e) (AgentCont m o d e)
 
 type AgentTX m o d e = SF (ABSMonad m e) (AgentTXIn d) (AgentTXOut m o d e)
 
@@ -120,6 +121,7 @@ data AgentDef m o d e = AgentDef
   , adInitData :: ![DataFlow d]     -- AgentId identifies sender
   }
 
+-- TODO: i think we can get rid of the aiId here because the Agent receives it already on start
 data AgentIn o d e = AgentIn 
   { aiId              :: !AgentId
   , aiData            :: ![DataFlow d]     -- AgentId identifies sender
@@ -187,12 +189,16 @@ kill ao = ao { aoKill = Event () }
 isDead :: AgentOut m o d e -> Bool
 isDead = isEvent . aoKill
 
-hasEvent :: AgentIn o d e -> Bool
-hasEvent = isEvent . aiEvent
 
 -------------------------------------------------------------------------------
 -- EVENTS
 -------------------------------------------------------------------------------
+hasEvent :: AgentIn o d e -> Bool
+hasEvent = isEvent . aiEvent 
+
+extractEvent :: AgentIn o d e -> e
+extractEvent = fromEvent . aiEvent
+
 onEvent :: (e -> AgentOut m o d e -> AgentOut m o d e) 
         -> Event e 
         -> AgentOut m o d e 

@@ -1,5 +1,4 @@
-{-# LANGUAGE Arrows             #-}
-{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE Arrows #-}
 module Agent 
   (
     sirAgentBehaviour
@@ -88,7 +87,7 @@ sirAgentBehaviour :: RandomGen g
                   => SIRState 
                   -> FrSIREnvironment 
                   -> FrSIRAgent g
-sirAgentBehaviour Susceptible env = return $ sirAgentSuceptible env
-sirAgentBehaviour Infected    _   = return sirAgentInfected
-sirAgentBehaviour Recovered   _   = return sirAgentRecovered
+sirAgentBehaviour Susceptible env _ = return $ sirAgentSuceptible env
+sirAgentBehaviour Infected    _   _ = return sirAgentInfected
+sirAgentBehaviour Recovered   _   _ = return sirAgentRecovered
 -------------------------------------------------------------------------------
