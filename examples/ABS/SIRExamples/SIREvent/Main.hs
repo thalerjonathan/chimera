@@ -25,24 +25,47 @@ numInfected :: Int
 numInfected = 1
 
 main :: IO () 
-main = do
-  let g0 = mkStdGen rngSeed
-      ((adefs, _), g) = runRand (createSIRNumInfected agentCount numInfected) g0
-  
-      aossState = simulate adefs dt t samplingFunc
-      aossRand  = runStateT aossState (0,0,0)
-      ((finalTime, finalEvtCnt, samples), _) = evalRand aossRand g
+main = sirSimulate
+
+sirSimulate :: IO ()
+sirSimulate = do
+    let g0 = mkStdGen rngSeed
+        ((adefs, _), g) = runRand (createSIRNumInfected agentCount numInfected) g0
     
-      dynamics = map sampleToDynamic samples
+        aossState = simulate adefs dt t samplingFunc
+        aossRand  = runStateT aossState (0,0,0)
+        ((finalTime, finalEvtCnt, samples), _) = evalRand aossRand g
+      
+        dynamics = map sampleToDynamic samples
 
-  putStrLn $ "simulation terminated at t = " ++ show finalTime ++
-            " after " ++ show finalEvtCnt ++ " events"  
-  writeSirDynamicsFile "sirEvent.m" dt 0 dynamics
+    putStrLn $ "simulation terminated at t = " ++ show finalTime ++
+              " after " ++ show finalEvtCnt ++ " events"  
+    writeSirDynamicsFile "sirEvent.m" dt 0 dynamics
+  where
+    sampleToDynamic :: (Time, [AgentObservable o], SIRAggregateState)
+                    -> (Time, Double, Double, Double)
+    sampleToDynamic (t, _, (s, i, r)) = 
+      (t, fromIntegral s, fromIntegral i, fromIntegral r)
 
-sampleToDynamic :: (Time, SIRAggregateState) 
-                -> (Time, Double, Double, Double)
-sampleToDynamic (t, (s, i, r)) = 
-  (t, fromIntegral s, fromIntegral i, fromIntegral r)
+sirSimulateEvents :: IO () 
+sirSimulateEvents = do
+    let g0 = mkStdGen rngSeed
+        ((adefs, _), g) = runRand (createSIRNumInfected agentCount numInfected) g0
+    
+        aossState = simulateEvents adefs dt t samplingFunc
+        aossRand  = runStateT aossState (0,0,0)
+        ((finalTime, finalEvtCnt, samples), _) = evalRand aossRand g
+      
+        dynamics = map sampleToDynamic samples
+
+    putStrLn $ "simulation terminated at t = " ++ show finalTime ++
+              " after " ++ show finalEvtCnt ++ " events"  
+    writeSirDynamicsFile "sirEvent.m" dt 0 dynamics
+  where
+    sampleToDynamic :: (Time, SIRAggregateState) 
+                    -> (Time, Double, Double, Double)
+    sampleToDynamic (t, (s, i, r)) = 
+      (t, fromIntegral s, fromIntegral i, fromIntegral r)
 
 samplingFunc :: (SIRAgentMonad g) SIRAggregateState
 samplingFunc = get

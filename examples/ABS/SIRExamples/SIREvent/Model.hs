@@ -14,8 +14,6 @@ module Model
   , SIRAgentIn
   , SIRAgentOut
   
-  , SIREventSource
-  
   , infectivity
   , contactRate
   , illnessDuration
@@ -49,12 +47,11 @@ type SIRAggregateState = (Int, Int, Int)
 type SIRAgentMonad g  = StateT SIRAggregateState (Rand g)
 type SIRAgentMonadT g = ABSMonad (SIRAgentMonad g) SIREvent
 
-type SIRAgent g         = Agent     (SIRAgentMonad g)   SIRState SIRData SIREvent
-type SIRAgentCont g     = AgentCont (SIRAgentMonad g)   SIRState SIRData SIREvent
-type SIRAgentDef g      = AgentDef  (SIRAgentMonad g)   SIRState SIRData SIREvent
-type SIRAgentIn         = AgentIn                       SIRState SIRData SIREvent
-type SIRAgentOut g      = AgentOut  (SIRAgentMonad g)   SIRState SIRData SIREvent
-type SIREventSource g a = EventSource (SIRAgentMonad g) SIRState SIRData SIREvent a
+type SIRAgent g     = Agent     (SIRAgentMonad g) SIRState SIRData SIREvent
+type SIRAgentCont g = AgentCont (SIRAgentMonad g) SIRState SIRData SIREvent
+type SIRAgentDef g  = AgentDef  (SIRAgentMonad g) SIRState SIRData SIREvent
+type SIRAgentIn     = AgentIn                     SIRState SIRData SIREvent
+type SIRAgentOut g  = AgentOut  (SIRAgentMonad g) SIRState SIRData SIREvent
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

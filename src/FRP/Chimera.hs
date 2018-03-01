@@ -417,6 +417,7 @@ module FRP.Chimera
   
   --, simulateIOInit
   , simulate
+  , simulateEvents
   , simulateTime
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas

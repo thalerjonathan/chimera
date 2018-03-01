@@ -75,8 +75,8 @@ sirAgentSusceptibleCont env aid =
                   arrM_ (lift $ lift (modify incInf)) -< ()
                   dt <- arrM_ (lift (randomExpM (1 / illnessDuration))) -< ()
                   _ <- arrM (lift . scheduleEventM aid Recover) -< dt
-                  returnA -< (agentOut, Event ())
-                _        -> returnA -< (agentOut, NoEvent)
+                  returnA -< (aoSus, Event ())
+                _        -> returnA -< (aoSus, NoEvent)
 
             MakeContact -> do 
               receivers <- arrM_ (lift (forM [1..contactRate] (const $ randomElemM env))) -< ()
@@ -85,12 +85,14 @@ sirAgentSusceptibleCont env aid =
                 (Contact aid Susceptible)
                 0.01)) -< receivers
               arrM_ (lift $ scheduleEventM aid MakeContact contactInterval) -< ()
-              returnA -< (agentOut, NoEvent)
+              returnA -< (aoSus, NoEvent)
 
             -- Recover will never occur for a susceptible
-            _ -> returnA -< (agentOut, NoEvent)
+            _ -> returnA -< (aoSus, NoEvent)
 
-        else returnA -< (agentOut, NoEvent)
+        else returnA -< (aoSus, NoEvent)
+
+    aoSus = agentOutObservable Susceptible
 
 -- INFECTED
 sirAgentInfected :: RandomGen g 
@@ -122,8 +124,8 @@ sirAgentInfectedCont aid =
               case s of
                 Susceptible -> do
                   _ <- arrM (\sender -> lift (scheduleEventM sender (Contact aid Infected) 0.01)) -< sender
-                  returnA -< (agentOut, NoEvent)
-                _ -> returnA -< (agentOut, NoEvent)
+                  returnA -< (aoInf, NoEvent)
+                _ -> returnA -< (aoInf, NoEvent)
 
             Recover -> do
               arrM_ (lift $ lift (modify decInf)) -< ()
@@ -131,9 +133,11 @@ sirAgentInfectedCont aid =
               returnA -< (agentOut, Event ())
 
             -- MakeContact will never occur for an infected agent
-            _ -> returnA -< (agentOut, NoEvent)
+            _ -> returnA -< (aoInf, NoEvent)
 
-        else returnA -< (agentOut, NoEvent)
+        else returnA -< (aoInf, NoEvent)
+
+    aoInf = agentOutObservable Infected
 
 -- RECOVERED
 sirAgentRecovered :: RandomGen g 
@@ -142,7 +146,7 @@ sirAgentRecovered _ =
     modifySIRStateM incRec >> return sirAgentRecoveredCont
 
 sirAgentRecoveredCont :: SIRAgentCont g
-sirAgentRecoveredCont = arr (const agentOut)
+sirAgentRecoveredCont = arr (const $ agentOutObservable Recovered)
 
 -- INITIAL CASES
 sirAgentBehaviour :: RandomGen g 
