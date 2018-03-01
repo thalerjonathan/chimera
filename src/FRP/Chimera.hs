@@ -416,7 +416,7 @@ module FRP.Chimera
   , AgentObservableAggregator
   
   --, simulateIOInit
-
+  , simulate
   , simulateTime
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas

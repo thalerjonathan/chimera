@@ -6,6 +6,8 @@ import FRP.Chimera
 import FRP.Yampa
 
 import Init
+import Model
+import Sir
 
 rngSeed :: Int
 rngSeed = 42
@@ -14,20 +16,33 @@ dt :: DTime
 dt = 1.0
 
 t :: DTime
-t = 50
+t = 100
 
 agentCount :: Int
-agentCount = 100
+agentCount = 1000
 
 numInfected :: Int
-numInfected = 10
+numInfected = 1
 
 main :: IO () 
-main = print s --writeSirDynamicsFile fileName dt 0 dynamics
-  where
-    g0 = mkStdGen rngSeed
-    ((adefs, _), g) = runRand (createSIRNumInfected agentCount numInfected) g0
+main = do
+  let g0 = mkStdGen rngSeed
+      ((adefs, _), g) = runRand (createSIRNumInfected agentCount numInfected) g0
   
-    aossState = simulateTime adefs dt t
-    aossRand  = runStateT aossState (0,0,0)
-    (_, s)    = evalRand aossRand g
+      aossState = simulate adefs dt t samplingFunc
+      aossRand  = runStateT aossState (0,0,0)
+      ((finalTime, finalEvtCnt, samples), _) = evalRand aossRand g
+    
+      dynamics = map sampleToDynamic samples
+
+  putStrLn $ "simulation terminated at t = " ++ show finalTime ++
+            " after " ++ show finalEvtCnt ++ " events"  
+  writeSirDynamicsFile "sirEvent.m" dt 0 dynamics
+
+sampleToDynamic :: (Time, SIRAggregateState) 
+                -> (Time, Double, Double, Double)
+sampleToDynamic (t, (s, i, r)) = 
+  (t, fromIntegral s, fromIntegral i, fromIntegral r)
+
+samplingFunc :: (SIRAgentMonad g) SIRAggregateState
+samplingFunc = get

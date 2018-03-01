@@ -4,6 +4,7 @@ module FRP.Chimera.Simulation.Simulation
 
   --, simulateIOInit
 
+  , simulate
   , simulateTime
   --, simulateTimeDeltas
   --, simulateAggregateTimeDeltas
@@ -13,14 +14,18 @@ module FRP.Chimera.Simulation.Simulation
   -- , simulateDebugInternal
   ) where
 
-import Control.Monad.Trans.MSF.Reader
-import Control.Monad.State.Strict
-import FRP.BearRiver
+import           Data.Maybe
 
-import FRP.Chimera.Agent.Interface
-import FRP.Chimera.Agent.Monad 
-import FRP.Chimera.Simulation.Common
-import FRP.Chimera.Simulation.ParIteration
+import           Control.Monad.Trans.MSF.Reader
+import           Control.Monad.State.Strict
+import qualified Data.Map as Map
+import qualified Data.PQueue.Min as PQ
+import           FRP.BearRiver
+
+import           FRP.Chimera.Agent.Interface
+import           FRP.Chimera.Agent.Monad 
+import           FRP.Chimera.Simulation.Common
+import           FRP.Chimera.Simulation.ParIteration
 
 type AgentObservableAggregator o a  = SimulationStepOut o -> a
 
@@ -60,6 +65,73 @@ simulateTime adefs dt t = do
         aossM      = evalStateT aossState s'
 
     aossM
+
+-- TODO: output the monadic context every dt together with the agent outs
+simulate :: Monad m
+         => [AgentDef m o d e]
+         -> DTime
+         -> Time
+         -> m a
+         -> m (Time, Integer, [(Time, a)])
+simulate adefs tSampling tLimit samplingFunc = do
+    ((asfs, ais), abs0) <- runStateT (startingAgentM adefs) absState
+    
+    let asMap = Prelude.foldr (\(ai, asf) acc -> Map.insert (aiId ai) asf acc) Map.empty (Prelude.zip ais asfs)
+    (samples, absFinal) <- runStateT (stepClock 0 asMap samplingFunc []) abs0
+    
+    let finalTime   = absTime absFinal
+    let finalEvtCnt = absEvtIdx absFinal
+
+    return (finalTime, finalEvtCnt, reverse samples)
+
+  where
+    stepClock :: Monad m 
+              => Double
+              -> Map.Map AgentId (AgentCont m o d e)
+              -> m a
+              -> [(Time, a)] 
+              -> (ABSMonad m e) [(Time, a)]
+    stepClock ts asMap samplingFunc acc = do
+      q <- gets absEvtQueue
+
+      -- TODO: use MaybeT 
+
+      let mayHead = PQ.getMin q
+      if isNothing mayHead
+        then return acc
+        else do
+          ec <- gets absEvtIdx
+          t  <- gets absTime
+
+          let _qi@(QueueItem aid e t') = fromJust mayHead
+          --let q' = Debug.Trace.trace ("QueueItem: " ++ show qi) (PQ.drop 1 q)
+          let q' = PQ.drop 1 q
+
+          -- modify time and changed queue before running the process
+          -- because the process might change the queue
+          modify (\s -> s { 
+            absEvtQueue = q' 
+          , absTime     = t'
+          , absEvtIdx   = ec + 1
+          })
+
+          let ac = fromJust $ Map.lookup aid asMap
+          let ai = (agentIn aid) { aiEvent = Event e }
+          let localDt = tSampling
+
+          let acReader = unMSF ac ai
+          (_ao, ac') <- runReaderT acReader localDt
+         
+          let asMap' = Map.insert aid ac' asMap
+
+          s <- lift samplingFunc
+          let (acc', ts') = if ts >= tSampling
+                then ((t', s) : acc, 0)
+                else (acc, ts + (t' - t))
+
+          if t' < tLimit
+            then stepClock ts' asMap' samplingFunc acc'
+            else return acc'
 
   {-
 simulateTimeDeltas :: [AgentDef m o d]
