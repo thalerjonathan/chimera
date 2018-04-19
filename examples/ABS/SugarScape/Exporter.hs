@@ -1,97 +1,90 @@
-module SugarScape.Exporter (
+module Exporter 
+  (
     writeSugarscapeDynamics
   ) where
 
-import FRP.Yampa
-
-import SugarScape.Model
+import FRP.BearRiver
 
 import System.IO
 import Text.Printf
 
-writeSugarscapeDynamics :: [(Time, [SugarScapeAgentObservable], SugarScapeEnvironment)] -> IO ()
-writeSugarscapeDynamics dynamics =
-    do
-        writeWealthDistribution dynamics
-        writeCarryingCapacity dynamics
-        writeCulturalDynamics dynamics
+import Model
 
-writeWealthDistribution :: [(Time, [SugarScapeAgentObservable], SugarScapeEnvironment)] -> IO ()
-writeWealthDistribution dynamics =
-    do
-        let steps = length dynamics 
-        let (_, finalAos, _) = last dynamics
+writeSugarscapeDynamics :: [(Time, [SugAgentState], SugEnvironment)] -> IO ()
+writeSugarscapeDynamics dynamics = do
+  writeWealthDistribution dynamics
+  writeCarryingCapacity dynamics
+  writeCulturalDynamics dynamics
 
-        fileHdl <- openFile "sugarscape_wealthDist.m" WriteMode
-        
-        hPutStrLn fileHdl "wealthDist = ["
-        mapM_ (hPutStrLn fileHdl . (\ao -> show $ sugAgSugarLevel $ snd ao)) finalAos
-        hPutStrLn fileHdl "];"
+writeWealthDistribution :: [(Time, [SugAgentState], SugEnvironment)] -> IO ()
+writeWealthDistribution dynamics = do
+  let steps = length dynamics 
+  let (_, finalAos, _) = last dynamics
 
-        hPutStrLn fileHdl "figure;"
-        hPutStrLn fileHdl "hist(wealthDist);"
-        hPutStrLn fileHdl "xlabel ('Wealth');"
-        hPutStrLn fileHdl "ylabel ('Agents');"
-        hPutStrLn fileHdl ("title ('Wealth-Distribution after " ++ show steps ++ " steps');")
+  fileHdl <- openFile "sugarscape_wealthDist.m" WriteMode
+  
+  hPutStrLn fileHdl "wealthDist = ["
+  mapM_ (hPutStrLn fileHdl . (\ao -> show $ sugAgSugarLevel ao)) finalAos
+  hPutStrLn fileHdl "];"
 
-        hClose fileHdl
+  hPutStrLn fileHdl "figure;"
+  hPutStrLn fileHdl "hist(wealthDist);"
+  hPutStrLn fileHdl "xlabel ('Wealth');"
+  hPutStrLn fileHdl "ylabel ('Agents');"
+  hPutStrLn fileHdl ("title ('Wealth-Distribution after " ++ show steps ++ " steps');")
 
-writeCarryingCapacity :: [(Time, [SugarScapeAgentObservable], SugarScapeEnvironment)] -> IO ()
-writeCarryingCapacity dynamics =
-    do
-        let steps = length dynamics 
+  hClose fileHdl
 
-        fileHdl <- openFile "sugarscape_carryingcapacity.m" WriteMode
-        
-        hPutStrLn fileHdl "carryingcapacity = ["
-        mapM_ (hPutStrLn fileHdl . (\(t, aos, _) -> "" ++ show t ++ "," ++ (show $ length aos))) dynamics
-        hPutStrLn fileHdl "];"
+writeCarryingCapacity :: [(Time, [SugAgentState], SugEnvironment)] -> IO ()
+writeCarryingCapacity dynamics = do
+  let steps = length dynamics 
 
-        hPutStrLn fileHdl "figure;"
-        hPutStrLn fileHdl "plot (carryingcapacity.', 'color', 'blue');"
-        hPutStrLn fileHdl "xlabel ('Steps');"
-        hPutStrLn fileHdl "ylabel ('Agents');"
-        hPutStrLn fileHdl ("title ('Carrying Capacity over " ++ show steps ++ " steps');")
+  fileHdl <- openFile "sugarscape_carryingcapacity.m" WriteMode
+  
+  hPutStrLn fileHdl "carryingcapacity = ["
+  mapM_ (hPutStrLn fileHdl . (\(t, aos, _) -> "" ++ show t ++ "," ++ show (length aos))) dynamics
+  hPutStrLn fileHdl "];"
 
-        hClose fileHdl
+  hPutStrLn fileHdl "figure;"
+  hPutStrLn fileHdl "plot (carryingcapacity.', 'color', 'blue');"
+  hPutStrLn fileHdl "xlabel ('Steps');"
+  hPutStrLn fileHdl "ylabel ('Agents');"
+  hPutStrLn fileHdl $ "title ('Carrying Capacity over " ++ show steps ++ " steps');"
 
-writeCulturalDynamics :: [(Time, [SugarScapeAgentObservable], SugarScapeEnvironment)] -> IO ()
-writeCulturalDynamics dynamics =
-    do
-        let steps = length dynamics 
+  hClose fileHdl
 
-        fileHdl <- openFile "sugarscape_culturaldynamics.m" WriteMode
-        
-        hPutStrLn fileHdl "dynamics = ["
-        mapM_ (hPutStrLn fileHdl . (tupleToString . tribeFractions . (\(_, aos, _) -> aos))) dynamics
-        hPutStrLn fileHdl "];"
+writeCulturalDynamics :: [(Time, [SugAgentState], SugEnvironment)] -> IO ()
+writeCulturalDynamics dynamics = do
+    fileHdl <- openFile "sugarscape_culturaldynamics.m" WriteMode
+    
+    hPutStrLn fileHdl "dynamics = ["
+    mapM_ (hPutStrLn fileHdl . (tupleToString . tribeFractions . (\(_, aos, _) -> aos))) dynamics
+    hPutStrLn fileHdl "];"
 
-        hPutStrLn fileHdl "redFract = dynamics (:, 1);"
-        hPutStrLn fileHdl "blueFract = dynamics (:, 2);"
-        hPutStrLn fileHdl "figure"
-        hPutStrLn fileHdl "plot (redFract.', 'color', 'red');"
-        hPutStrLn fileHdl "hold on"
-        hPutStrLn fileHdl "plot (blueFract.', 'color', 'blue');"
-        hPutStrLn fileHdl "xlabel ('Steps');"
-        hPutStrLn fileHdl "ylabel ('Fraction');"
-        hPutStrLn fileHdl "legend('Red Tribe','Blue Tribe');"
-        hPutStrLn fileHdl ("title ('Cultural Dynamics');")
+    hPutStrLn fileHdl "redFract = dynamics (:, 1);"
+    hPutStrLn fileHdl "blueFract = dynamics (:, 2);"
+    hPutStrLn fileHdl "figure"
+    hPutStrLn fileHdl "plot (redFract.', 'color', 'red');"
+    hPutStrLn fileHdl "hold on"
+    hPutStrLn fileHdl "plot (blueFract.', 'color', 'blue');"
+    hPutStrLn fileHdl "xlabel ('Steps');"
+    hPutStrLn fileHdl "ylabel ('Fraction');"
+    hPutStrLn fileHdl "legend('Red Tribe','Blue Tribe');"
+    hPutStrLn fileHdl "title ('Cultural Dynamics');"
 
+    hClose fileHdl
+  where
+    tribeFractions :: [SugAgentState] -> (Double, Double)
+    tribeFractions aobs = (redTribeFract, blueTribeFract)
+      where
+        redTribesCount = length $ filter (\ao -> Red == sugAgTribe ao) aobs
+        blueTribesCount = length $ filter (\ao -> Blue == sugAgTribe ao) aobs
 
-        hClose fileHdl
-
-    where
-        tribeFractions :: [SugarScapeAgentObservable] -> (Double, Double)
-        tribeFractions aobs = (redTribeFract, blueTribeFract)
-            where
-                redTribesCount = length $ filter (\ao -> Red == (sugAgTribe $ snd ao)) aobs
-                blueTribesCount = length $ filter (\ao -> Blue == (sugAgTribe $ snd ao)) aobs
-
-                redTribeFract = fromIntegral redTribesCount / fromIntegral (redTribesCount + blueTribesCount)
-                blueTribeFract = fromIntegral blueTribesCount / fromIntegral (redTribesCount + blueTribesCount)
+        redTribeFract = fromIntegral redTribesCount / fromIntegral (redTribesCount + blueTribesCount)
+        blueTribeFract = fromIntegral blueTribesCount / fromIntegral (redTribesCount + blueTribesCount)
 
 tupleToString :: (Double, Double) -> String
-tupleToString (x, y) = 
-                printf "%.3f" x 
-                    ++ "," ++ printf "%.3f" y
-                    ++ ";"
+tupleToString (x, y)
+  = printf "%.3f" x 
+    ++ "," ++ printf "%.3f" y
+    ++ ";"

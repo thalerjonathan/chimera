@@ -1,19 +1,17 @@
-module SugarScape.Init (
+module Init (
     createSugarScape
   ) where
 
-import SugarScape.Model
-import SugarScape.Agent
-import SugarScape.Common
-
+import Control.Monad.Random
 import FRP.FrABS
-
 import FRP.Yampa
 
 import Data.List
-
 import System.Random
-import Control.Monad.Random
+
+import Agent
+import Common
+import Model
 
 createSugarScape :: Int 
                     -> Discrete2dDimension 
