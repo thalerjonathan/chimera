@@ -34,6 +34,7 @@ executable sugarscape
                 , MonadRandom
                 , split
                 , random
+                , mtl
                 
   ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
 

@@ -11,6 +11,7 @@ module Model
   , MatingReplyTuple
 
   , SugAgentState (..)
+  , SugAgentObservable (..)
 
   , SugEnvCellOccupier (..)
   , SugEnvCell (..)
@@ -79,6 +80,7 @@ module Model
   ) where
 
 import Control.Monad.Random
+import Control.Monad.State.Strict
 import FRP.Chimera
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -154,6 +156,13 @@ data SugAgentState = SugAgentState
   , sugAgDiseases         :: [SugDisease]                 -- the disease the agent currently has
   } deriving (Show)
 
+data SugAgentObservable = SugAgentObservable
+  {
+    sugObsCoord   :: Discrete2dCoord
+  , sugObsGender  :: SugAgentGender
+    -- TODO: add all relevant fields
+  } deriving (Show)
+
 data SugEnvCellOccupier = SugEnvCellOccupier 
   { sugEnvOccId     :: AgentId
   , sugEnvOccTribe  :: SugTribe
@@ -169,17 +178,17 @@ data SugEnvCell = SugEnvCell
   , sugEnvOccupier      :: Maybe SugEnvCellOccupier
   } deriving (Show)
 
-type SugData = ()
-type SugAgentMonad g  = Rand g
-type SugAgentMonadT g = ABSMonad (SugAgentMonad g) SugEvt
-
 type SugEnvironment = Discrete2d SugEnvCell
 
-type SugAgent g     = Agent     (SugAgentMonad g) SugAgentState SugData SugEvt
-type SugAgentCont g = AgentCont (SugAgentMonad g) SugAgentState SugData SugEvt
-type SugAgentDef g  = AgentDef  (SugAgentMonad g) SugAgentState SugData SugEvt
-type SugAgentIn     = AgentIn                     SugAgentState SugData SugEvt
-type SugAgentOut g  = AgentOut  (SugAgentMonad g) SugAgentState SugData SugEvt
+type SugData = ()
+type SugAgentMonad g  = StateT SugEnvironment (Rand g)
+type SugAgentMonadT g = ABSMonad (SugAgentMonad g) SugEvt
+
+type SugAgent g     = Agent     (SugAgentMonad g) SugAgentObservable SugData SugEvt
+type SugAgentCont g = AgentCont (SugAgentMonad g) SugAgentObservable SugData SugEvt
+type SugAgentDef g  = AgentDef  (SugAgentMonad g) SugAgentObservable SugData SugEvt
+type SugAgentIn     = AgentIn                     SugAgentObservable SugData SugEvt
+type SugAgentOut g  = AgentOut  (SugAgentMonad g) SugAgentObservable SugData SugEvt
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------

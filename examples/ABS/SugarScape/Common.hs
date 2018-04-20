@@ -1,6 +1,8 @@
 module Common 
   (
-    isDiseased
+    sugObservableFromState
+    
+  , isDiseased
   , metabolismAmount
 
   , BestCellMeasureFunc
@@ -69,6 +71,13 @@ import Model
 ------------------------------------------------------------------------------------------------------------------------
 -- GENERAL FUNCTIONS, independent of monadic / non-monadic implementation
 ------------------------------------------------------------------------------------------------------------------------
+sugObservableFromState :: SugAgentState -> SugAgentObservable
+sugObservableFromState s = SugAgentObservable
+  {
+    sugObsCoord  = sugAgCoord s 
+  , sugObsGender = sugAgGender s
+  }
+
 type BestCellMeasureFunc = (SugEnvCell -> Double) 
 
 isDiseased :: SugAgentState -> Bool

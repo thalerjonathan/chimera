@@ -1,24 +1,61 @@
+{-# LANGUAGE Arrows #-}
 module Agent 
   (
-    sugarScapeAgentConversation
-  , sugarScapeAgentBehaviour
+    sugAgent
   ) where
 
-import Control.Monad
-import Control.Monad.IfElse
-import Control.Monad.Trans.State
+-- import Control.Monad
+-- import Control.Monad.IfElse
+import Control.Monad.Random
+import Control.Monad.State.Strict
 import FRP.Chimera
+import FRP.BearRiver
 
-import Data.Maybe
-import Data.List
+--import Data.Maybe
+--import Data.List
 
 import Common
-import Environment
+--import Environment
 import Model
+
+------------------------------------------------------------------------------------------------------------------------
+sugAgent :: RandomGen g 
+         => SugAgentState
+         -> SugAgent g
+sugAgent s0 aid = return sugAgentCont
+  where
+    sugAgentCont :: RandomGen g 
+                 => SugAgentCont g
+    sugAgentCont = feedback s0 (proc (ain, s) -> do
+      age      <- time -< ()
+      (ao, s') <- arrM (\(age, ain, s) -> lift $ runStateT (chapterII aid ain age) s) -< (age, ain, s)
+      returnA -< (ao, s'))
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Chapter II: Life And Death On The Sugarscape
 ------------------------------------------------------------------------------------------------------------------------
+chapterII :: RandomGen g
+          => AgentId
+          -> SugAgentIn
+          -> Double
+          -> StateT SugAgentState (SugAgentMonadT g) (SugAgentOut g)
+chapterII _aid _ain _age = do
+  -- no lift: getting SugAgentState
+  s <- get
+
+  -- 1 lift: inside ABSMonad
+  _x <- lift get
+  _f <- lift $ unscheduleEventM 0
+ 
+  -- 2 lifts: inside SugEnvironment
+  _env <- lift $ lift get
+
+  -- 3 lifts: drawing RNG
+  _re <- lift $ lift $ lift $ randomExpM 1
+
+  return $ agentOutObservable $ sugObservableFromState s 
+
+{-
 agentCellOnCoordM :: SugEnvironment -> State SugAgentOut (Discrete2dCoord, SugEnvCell)
 agentCellOnCoordM e = do
   coord <- agentStateFieldM sugAgCoord
@@ -781,11 +818,4 @@ chapterV e age ain = do
               agentDiseaseProcessesM ain e2
               return e2
 ------------------------------------------------------------------------------------------------------------------------
-
-------------------------------------------------------------------------------------------------------------------------
-sugarScapeAgentBehaviour :: SugarScapeAgentBehaviour
-sugarScapeAgentBehaviour = agentMonadic chapterII
-
-sugarScapeAgentConversation :: SugarScapeAgentConversation
-sugarScapeAgentConversation = sugarScapeAgentConversationM
-------------------------------------------------------------------------------------------------------------------------
+-}
