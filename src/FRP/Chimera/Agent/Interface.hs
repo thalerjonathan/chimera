@@ -159,6 +159,35 @@ data AgentTXOut m o d e = AgentTXOut
   , aoTxAbort     :: Bool
   }
 
+-- TODO: need a type-class for joining the o type
+-- which is itself the (>+<) operator =>
+-- implement join type-class for AgentOut as well
+(>+<) :: AgentOut m o d e
+      -> AgentOut m o d e
+      -> AgentOut m o d e
+(>+<) ao0 ao1 = AgentOut
+  { aoKill              = aoKill ao0 || aoKill ao1
+  , aoCreate            = aoCreate ao0 ++ aoCreate ao1
+  , aoData              = aoData ao0 ++ aoData ao1
+  , aoRequestTx         :: !(Event (DataFlow d, AgentTX m o d e))
+  , aoAcceptTx          :: !(Event (d, AgentTX m o d e))
+  , aoObservable        = joinObs ao0 ao1
+  , aoRec               :: !(Event ())
+  , aoRecOthersAllowed  = aoRecOthersAllowed ao0 || aoRecOthersAllowed ao1
+  }
+  where
+    joinObs :: AgentOut m o d e
+            -> AgentOut m o d e
+            -> Maybe o
+    joinObs ao0 ao1
+        -- TODO: isnt there a funciton which does this for us automatically? and we need only to apply the final function?
+        | isJust o0 && isJust o1    = undefined
+        | isJust o0 && isNothign o1 = o0
+        | isNothing o0 && isJust o1 = o1
+        | otherwise                 = Nothing
+      where
+        o0 = aoObservable ao0
+        o1 = aoObservable ao1
 -------------------------------------------------------------------------------
 -- GENERAL 
 -------------------------------------------------------------------------------

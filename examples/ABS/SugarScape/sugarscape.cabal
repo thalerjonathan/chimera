@@ -35,6 +35,7 @@ executable sugarscape
                 , split
                 , random
                 , mtl
+                , gloss
                 
   ghc-options:      -O3 -Wall -Werror -fwarn-tabs -fno-warn-name-shadowing -threaded
 

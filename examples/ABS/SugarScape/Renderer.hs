@@ -3,7 +3,7 @@ module Renderer
     renderSugarScapeFrame
   ) where
 
-import FRP.FrABS
+import FRP.Chimera
 import qualified Graphics.Gloss as GLO
 
 import Common
@@ -16,7 +16,7 @@ type SugarScapeAgentRenderer = AgentRendererDisc2d SugarScapeAgentState
 
 renderSugarScapeFrame :: SugarScapeRenderFrame
 renderSugarScapeFrame wSize@(wx, wy) t ss e
-    = GLO.Pictures $ (envPics ++ agentPics ++ [timeStepTxt])
+    = GLO.Pictures (envPics ++ agentPics ++ [timeStepTxt])
   where
     (dx, dy) = dimensionsDisc2d e
     cellWidth = fromIntegral wx / fromIntegral dx
@@ -40,11 +40,11 @@ renderSugarScapeFrame wSize@(wx, wy) t ss e
 
 renderEnvCell :: Double -> SugarScapeEnvironmentRenderer
 renderEnvCell maxPolLevel r@(rw, rh) w _t (coord, cell)
-    = GLO.Pictures $ [polutionLevelRect, spiceLevelCircle, sugarLevelCircle]
+    = GLO.Pictures [polutionLevelRect, spiceLevelCircle, sugarLevelCircle]
   where
     polLevel = sugEnvPolutionLevel cell
     --polGreenShadeRelative = (realToFrac (polLevel / maxPolLevel))
-    polGreenShadeAbsolute = 1.0 - (min 1.0 (realToFrac (polLevel / 30)))
+    polGreenShadeAbsolute = 1.0 - min 1.0 (realToFrac (polLevel / 30))
     polGreenShade = polGreenShadeAbsolute
 
     sugarColor = GLO.makeColor (realToFrac 0.9) (realToFrac 0.9) (realToFrac 0.0) 1.0
@@ -54,21 +54,22 @@ renderEnvCell maxPolLevel r@(rw, rh) w _t (coord, cell)
     (x, y) = transformToWindow r w coord
 
     sugarLevel = sugEnvSugarLevel cell
-    sugarRatio = sugarLevel / (snd sugarCapacityRange)
+    sugarRatio = sugarLevel / snd sugarCapacityRange
 
     spiceLevel = sugEnvSpiceLevel cell
-    spiceRatio = spiceLevel / (snd spiceCapacityRange)
+    spiceRatio = spiceLevel / snd spiceCapacityRange
 
-    sugarRadius = rw * (realToFrac sugarRatio)
+    sugarRadius = rw * realToFrac sugarRatio
     sugarLevelCircle = GLO.color sugarColor $ GLO.translate x y $ GLO.ThickCircle 0 sugarRadius
 
-    spiceRadius = rw * (realToFrac spiceRatio)
+    spiceRadius = rw * realToFrac spiceRatio
     spiceLevelCircle = GLO.color spiceColor $ GLO.translate x y $ GLO.ThickCircle 0 spiceRadius
 
     polutionLevelRect = GLO.color polutionColor $ GLO.translate x y $ GLO.rectangleSolid rw rh
 
 sugarscapeAgentRenderer :: SugarScapeAgentRenderer
-sugarscapeAgentRenderer r@(rw, rh) w _t (aid, s) = GLO.Pictures [circle, txt]
+sugarscapeAgentRenderer r@(rw, rh) w _t (aid, s) 
+    = GLO.Pictures [circle, txt]
   where
     coord = sugAgCoord s
     color = agentColoring _agentColoring_ aid s
