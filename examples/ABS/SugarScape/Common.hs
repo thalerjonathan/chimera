@@ -211,8 +211,8 @@ createNewBorn :: RandomGen g
               => (AgentId, Discrete2dCoord)
               -> (Double, Double, Double, Int, SugCulturalTag, SugImmuneSystem)
               -> (Double, Double, Double, Int, SugCulturalTag, SugImmuneSystem)
-              -> SugAgent g
-              -> Rand g (SugAgentDef g)
+              -> (SugAgentState -> SugAgent g)
+              -> Rand g (SugAgentDef g, SugAgentState)
 createNewBorn idCoord
                 (sugEndowFather, sugarMetabFather, spiceMetabFather, visionFather, cultureFather, immuneSysBornFather)
                 (sugEndowMother, sugarMetabMother, spiceMetabMother, visionMother, cultureMother, immuneSysBornMother)
@@ -491,9 +491,9 @@ hammingDistance as bs = length $ filter (==False) equals
 
 randomAgent :: RandomGen g  
             => (AgentId, Discrete2dCoord)
-            -> SugAgent g
+            -> (SugAgentState -> SugAgent g)
             -> (SugAgentState -> SugAgentState)
-            -> Rand g (SugAgentDef g)
+            -> Rand g (SugAgentDef g, SugAgentState)
 randomAgent (agentId, coord) beh sup = do
   -- NOTE: need to split here otherwise agents would end up with the same random-values when not already splitting in the calling function
   _rng <- getSplit
@@ -551,13 +551,11 @@ randomAgent (agentId, coord) beh sup = do
   , sugAgDiseases         = diseases
   }
 
-  -- TODO: initial state must be fed in through behaviour
-  let _s' = sup s
-
+  let s'   = sup s
   let adef = AgentDef {
     adId       = agentId
-  , adBeh      = beh
+  , adBeh      = beh s'
   , adInitData = [] 
   }
 
-  return adef
+  return (adef, s')
