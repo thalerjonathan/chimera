@@ -159,6 +159,9 @@ data AgentTXOut m o d e = AgentTXOut
   , aoTxAbort     :: Bool
   }
 
+-- TODO: implement >+> which  overrides the righ observable in case it is just
+-- TODO: implement <+< the other way round
+
 -- TODO: need a type-class for joining the o type
 -- which is itself the (>+<) operator =>
 -- implement join type-class for AgentOut as well
@@ -181,7 +184,7 @@ data AgentTXOut m o d e = AgentTXOut
             -> Maybe o
     joinObs ao0 ao1
         -- TODO: isnt there a funciton which does this for us automatically? and we need only to apply the final function?
-        | isJust o0 && isJust o1    = undefined
+        | isJust o0 && isJust o1    = undefined -- TODO: how to combine observables? let caller decide through type-classes >+<
         | isJust o0 && isNothign o1 = o0
         | isNothing o0 && isJust o1 = o1
         | otherwise                 = Nothing
