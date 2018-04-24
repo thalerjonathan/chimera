@@ -20,6 +20,7 @@ module FRP.Chimera.Agent.Interface
   , AgentTXIn (..)
   , AgentTXOut (..)
   
+  , (>+>)
   , absState
   
   , agentId
@@ -75,6 +76,7 @@ module FRP.Chimera.Agent.Interface
 
 import           Data.List
 import           Data.Maybe
+import           Control.Applicative
 
 import           Control.Monad.State.Strict
 import qualified Data.PQueue.Min as PQ
@@ -121,6 +123,7 @@ data AgentDef m o d e = AgentDef
   , adInitData :: ![DataFlow d]     -- AgentId identifies sender
   }
 
+-- TODO: get rid of TX stuff when implemented in monad
 -- TODO: i think we can get rid of the aiId here because the Agent receives it already on start
 data AgentIn o d e = AgentIn 
   { aiId              :: !AgentId
@@ -159,38 +162,19 @@ data AgentTXOut m o d e = AgentTXOut
   , aoTxAbort     :: Bool
   }
 
--- TODO: implement >+> which  overrides the righ observable in case it is just
--- TODO: implement <+< the other way round
-
--- TODO: need a type-class for joining the o type
--- which is itself the (>+<) operator =>
--- implement join type-class for AgentOut as well
-(>+<) :: AgentOut m o d e
+(>+>) :: AgentOut m o d e
       -> AgentOut m o d e
       -> AgentOut m o d e
-(>+<) ao0 ao1 = AgentOut
-  { aoKill              = aoKill ao0 || aoKill ao1
-  , aoCreate            = aoCreate ao0 ++ aoCreate ao1
-  , aoData              = aoData ao0 ++ aoData ao1
-  , aoRequestTx         :: !(Event (DataFlow d, AgentTX m o d e))
-  , aoAcceptTx          :: !(Event (d, AgentTX m o d e))
-  , aoObservable        = joinObs ao0 ao1
-  , aoRec               :: !(Event ())
-  , aoRecOthersAllowed  = aoRecOthersAllowed ao0 || aoRecOthersAllowed ao1
+(>+>) aoL aoR = AgentOut
+  { aoKill              = lMerge (aoKill aoL) (aoKill aoR)
+  , aoCreate            = aoCreate aoL ++ aoCreate aoR
+  , aoData              = aoData aoL ++ aoData aoR
+  , aoRequestTx         = lMerge (aoRequestTx aoL) (aoRequestTx aoR)
+  , aoAcceptTx          = lMerge (aoAcceptTx aoL) (aoAcceptTx aoR) 
+  , aoObservable        = aoObservable aoL Control.Applicative.<|> aoObservable aoR
+  , aoRec               = lMerge (aoRec aoL) (aoRec aoR)
+  , aoRecOthersAllowed  = aoRecOthersAllowed aoL || aoRecOthersAllowed aoR
   }
-  where
-    joinObs :: AgentOut m o d e
-            -> AgentOut m o d e
-            -> Maybe o
-    joinObs ao0 ao1
-        -- TODO: isnt there a funciton which does this for us automatically? and we need only to apply the final function?
-        | isJust o0 && isJust o1    = undefined -- TODO: how to combine observables? let caller decide through type-classes >+<
-        | isJust o0 && isNothign o1 = o0
-        | isNothing o0 && isJust o1 = o1
-        | otherwise                 = Nothing
-      where
-        o0 = aoObservable ao0
-        o1 = aoObservable ao1
 -------------------------------------------------------------------------------
 -- GENERAL 
 -------------------------------------------------------------------------------

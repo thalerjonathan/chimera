@@ -22,13 +22,13 @@ import FRP.Chimera.Agent.Agent
 import FRP.Chimera.Environment.Continuous
 import FRP.Chimera.Rendering.GlossSimulator
 
-type AgentRendererCont2d s  = Continuous2dDimension
+type AgentRendererCont2d o  = Continuous2dDimension
                             -> (Int, Int)
                             -> Time
-                            -> (AgentId, s)
+                            -> (AgentId, o)
                             -> GLO.Picture
-type AgentColorerCont2d s   = s -> GLO.Color
-type AgentCoordCont2d s     = (s -> Continuous2dCoord)
+type AgentColorerCont2d o   = o -> GLO.Color
+type AgentCoordCont2d o     = (o -> Continuous2dCoord)
 
 type EnvRendererCont2d c    = (Int, Int) 
                             -> Time 

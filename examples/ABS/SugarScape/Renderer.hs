@@ -9,10 +9,10 @@ import qualified Graphics.Gloss as GLO
 import Common
 import Model
 
-type SugarScapeRenderFrame = RenderFrame SugarScapeAgentState SugarScapeEnvironment
-type SugarScapeAgentColorer = AgentCellColorerDisc2d SugarScapeAgentState
-type SugarScapeEnvironmentRenderer = EnvRendererDisc2d SugarScapeEnvCell
-type SugarScapeAgentRenderer = AgentRendererDisc2d SugarScapeAgentState
+type SugarScapeRenderFrame = RenderFrame SugAgentState SugEnvironment
+type SugarScapeAgentColorer = AgentCellColorerDisc2d SugAgentState
+type SugEnvironmentRenderer = EnvRendererDisc2d SugEnvCell
+type SugarScapeAgentRenderer = AgentRendererDisc2d SugAgentState
 
 renderSugarScapeFrame :: SugarScapeRenderFrame
 renderSugarScapeFrame wSize@(wx, wy) t ss e
@@ -38,7 +38,7 @@ renderSugarScapeFrame wSize@(wx, wy) t ss e
     halfWSizeX = fromIntegral wx / 2.0 
     halfWSizeY = fromIntegral wy / 2.0 
 
-renderEnvCell :: Double -> SugarScapeEnvironmentRenderer
+renderEnvCell :: Double -> SugEnvironmentRenderer
 renderEnvCell maxPolLevel r@(rw, rh) w _t (coord, cell)
     = GLO.Pictures [polutionLevelRect, spiceLevelCircle, sugarLevelCircle]
   where

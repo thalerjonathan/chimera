@@ -314,9 +314,9 @@ module FRP.Chimera
   , randomNeighbourCellMsgSource
   , randomAgentIdMsgSource
 
-  -- Problem: reacthandle is missing
+  -- Problem: the whole rendering thing is completely broken
+    {-
   -- FRP.Chimera.Rendering.Continuous2d
-  {-
   , AgentRendererCont2d
   , AgentColorerCont2d
   , AgentCoordCont2d
@@ -367,8 +367,8 @@ module FRP.Chimera
 
   , defaultAgentRendererNetwork
   , defaultAgentColorerNetwork
--}
-
+  -}
+  
   -- FRP.Chimera.SD.Definitions
   , StockId
   , FlowId
@@ -446,7 +446,6 @@ import FRP.Chimera.Reactive.DataFlow
 import FRP.Chimera.Reactive.Extensions
 import FRP.Chimera.Reactive.Transitions
 
--- Problem: reacthandle is missing
 --import FRP.Chimera.Rendering.Continuous2d
 --import FRP.Chimera.Rendering.Discrete2d
 --import FRP.Chimera.Rendering.GlossSimulator

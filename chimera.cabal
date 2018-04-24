@@ -51,7 +51,7 @@ library
     --FRP.Chimera.Rendering.Discrete2d
     --FRP.Chimera.Rendering.Continuous2d
     --FRP.Chimera.Rendering.Network
-    -- FRP.Chimera.Rendering.GlossSimulator
+    --FRP.Chimera.Rendering.GlossSimulator
 
     FRP.Chimera.Reactive.DataFlow
     FRP.Chimera.Reactive.Extensions

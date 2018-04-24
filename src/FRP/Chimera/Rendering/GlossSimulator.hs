@@ -26,33 +26,29 @@ import FRP.Chimera.Simulation.Common
 import FRP.Chimera.Simulation.Init
 import FRP.Chimera.Simulation.Simulation
 
-type RenderFrame s e          = (Int, Int) 
-                              -> Time 
-                              -> [AgentObservable s] 
-                              -> e 
-                              -> GLO.Picture
-type StepCallback s e         = SimulationStepOut s e 
-                              -> SimulationStepOut s e 
-                              -> IO ()
+type RenderFrame o          = (Int, Int) 
+                            -> Time 
+                            -> [AgentObservable o]
+                            -> GLO.Picture
+type StepCallback o         = SimulationStepOut o 
+                            -> SimulationStepOut o 
+                            -> IO ()
+type RenderFrameInternal o  = Time 
+                            -> [AgentObservable o] 
+                            -> GLO.Picture
 
-type RenderFrameInternal s e  = Time 
-                              -> [AgentObservable s] 
-                              -> e 
-                              -> GLO.Picture
-
-simulateAndRender :: [AgentDef s m e] 
-                  -> e 
-                  -> SimulationParams e
+simulateAndRender :: [AgentDef m o d e] 
                   -> Double
                   -> Int
                   -> String
                   -> (Int, Int)
-                  -> RenderFrame s e
-                  -> Maybe (StepCallback s e)
+                  -> RenderFrame o
+                  -> Maybe (StepCallback o)
                   -> IO ()
-simulateAndRender initAdefs 
-            e 
-            params 
+simulateAndRender = undefined
+
+      {-
+      initAdefs 
             dt 
             freq 
             winTitle 
@@ -60,8 +56,9 @@ simulateAndRender initAdefs
             renderFunc
             mayClbk = do
     outRef <- newIORef (0, initEmptyAgentObs, e) -- :: IO (IORef ([AgentObservable s], e))
-    hdl <- simulateIOInit initAdefs e params (nextIteration mayClbk outRef)
+    hdl <- simulateIOInit initAdefs e (nextIteration mayClbk outRef)
 
+    -- NOTE: rendering must run in main thread
     if freq > 0 then
       simulateIO (displayGlossWindow winTitle winSize)
         GLO.black
@@ -80,9 +77,22 @@ simulateAndRender initAdefs
     initEmptyAgentObs :: [AgentObservable s]
     initEmptyAgentObs = []
 
+    -- TODO: implement
+    simulationThread :: IO ()
+    simulationThread = undefined
+
+
+modelToPicture :: RenderFrameInternal o
+               -> (SimulationStepOut o) 
+               -> IO GLO.Picture
+modelToPicture renderFunc (t, aobs, e) = return $ renderFunc t aobs e
+
+displayGlossWindow :: String -> (Int, Int) -> GLO.Display
+displayGlossWindow title winSize = (GLO.InWindow title winSize (0, 0))
+
+
 simulateStepsAndRender :: [AgentDef s m e] 
                        -> e  
-                       -> SimulationParams e
                        -> DTime
                        -> Time
                        -> String
@@ -91,20 +101,19 @@ simulateStepsAndRender :: [AgentDef s m e]
                        -> IO ()
 simulateStepsAndRender initAdefs 
                e 
-               params 
                dt 
                t 
                winTitle 
                winSize
                renderFunc = do
-  let ass = simulateTime initAdefs e params dt t
+  let ass = simulateTime initAdefs e dt t
   let (finalTime, finalAobs, finalEnv) = last ass
   let pic = renderFunc winSize finalTime finalAobs finalEnv 
   GLO.display (displayGlossWindow winTitle winSize)
       GLO.black
       pic
 
-      {-
+
 debugAndRender :: forall s e m . (Show s, Read s, Show e, Read e)
                => [AgentDef s m e] 
                -> e 
@@ -153,7 +162,7 @@ debugAndRender initAdefs
             (do
                 pic <- modelToPicture (renderFunc winSize) out
                 writeIORef renderOutputRef pic) >> return False
--}
+
 
 nextIteration :: Maybe (StepCallback s e)
               -> IORef (SimulationStepOut s e)
@@ -190,11 +199,5 @@ nextFrameSimulateNoTime renderFunc dt hdl obsRef _ = do
   _ <- react hdl (dt, Nothing)  -- NOTE: will result in call to nextIteration
   aobs <- readIORef obsRef
   modelToPicture renderFunc aobs
+-}
 
-modelToPicture :: RenderFrameInternal s e
-               -> (SimulationStepOut s e) 
-               -> IO GLO.Picture
-modelToPicture renderFunc (t, aobs, e) = return $ renderFunc t aobs e
-
-displayGlossWindow :: String -> (Int, Int) -> GLO.Display
-displayGlossWindow title winSize = (GLO.InWindow title winSize (0, 0))
