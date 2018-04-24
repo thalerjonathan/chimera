@@ -42,7 +42,7 @@ import           FRP.BearRiver
 
 import FRP.Chimera.Agent.Interface
 
--- TODO: implement TX here
+-- TODO: implement TX here, its super-easy to run within the ABSMonad
 
 -------------------------------------------------------------------------------
 -- GENERAL

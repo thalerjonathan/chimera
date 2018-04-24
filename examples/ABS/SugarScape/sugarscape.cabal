@@ -22,7 +22,7 @@ executable sugarscape
                 , Exporter
                 , Init
                 , Model
-                , Renderer
+                -- , Renderer
 
   build-depends:  base
                 , chimera

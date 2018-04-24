@@ -12,6 +12,8 @@ import Agent
 import Common
 import Model
 
+
+-- TODO: init and add an environment agent
 createSugarScape :: RandomGen g
                  => Int 
                  -> Discrete2dDimension 

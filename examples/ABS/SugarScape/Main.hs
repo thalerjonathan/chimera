@@ -1,16 +1,12 @@
-module Main (
-    runSugarScapeWithRendering,
-    runSugarScapeStepsAndRender,
+module Main where
 
-    runSugarScapeStepsAndExport
-  ) where
-
-import FRP.FrABS
+import FRP.BearRiver
+import FRP.Chimera
 
 import Environment
 import Exporter
 import Init
-import Renderer
+-- import Renderer
 
 winSize :: (Int, Int)
 winSize = (800, 800)
@@ -27,17 +23,11 @@ agentCount = 400
 envSize :: (Int, Int)
 envSize = (50, 50)
 
-
---updateStrat = Sequential    -- Sugarscape works ONLY with Sequential AND must be shuffled
---shuffleAgents = True        -- Sugarscape works ONLY with Sequential AND must be shuffled
---envCollapsing = Nothing
---envBeh = Just sugarScapeEnvironmentBehaviour
-
 dt :: DTime
 dt = 1.0     -- this model has discrete time-semantics with a step-with of 1.0 which is relevant for the aging of the agents
 
 t :: Time
-time = 200
+t = 200
 
 frequency :: Int
 frequency = 0
@@ -46,8 +36,19 @@ frequency = 0
 -- BUG: all agents have id=0 because newAgentId seems not to hand out new ids...
 
 main :: IO ()
-main = runSugarScapeWithRendering
+main = runSugarScapeStepsAndExport
 
+runSugarScapeStepsAndExport :: IO ()
+runSugarScapeStepsAndExport = do
+  
+  (initAdefs, initEnv) <- createSugarScape agentCount envSize params
+  
+  let asenv = simulateTime initAdefs dt time
+  _
+  writeSugarscapeDynamics asenv
+
+{-
+-- TODO: rendering is not working ATM because broken in chimera
 runSugarScapeWithRendering :: IO ()
 runSugarScapeWithRendering = do
   params <- initSimulation updateStrat envBeh envCollapsing shuffleAgents (Just rngSeed)
@@ -63,6 +64,7 @@ runSugarScapeWithRendering = do
                       renderSugarScapeFrame
                       Nothing
 
+-- TODO: rendering is not working ATM because broken in chimera
 runSugarScapeStepsAndRender :: IO ()
 runSugarScapeStepsAndRender = do
   params <- initSimulation updateStrat envBeh envCollapsing shuffleAgents (Just rngSeed)
@@ -76,11 +78,4 @@ runSugarScapeStepsAndRender = do
                           winTitle
                           winSize
                           renderSugarScapeFrame
-
-runSugarScapeStepsAndExport :: IO ()
-runSugarScapeStepsAndExport = do
-  params <- initSimulation updateStrat envBeh envCollapsing shuffleAgents (Just rngSeed)
-  (initAdefs, initEnv) <- createSugarScape agentCount envSize params
-  
-  let asenv = simulateTime initAdefs initEnv params dt time
-  writeSugarscapeDynamics asenv
+-}

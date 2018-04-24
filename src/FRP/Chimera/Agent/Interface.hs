@@ -102,6 +102,8 @@ data ABSState e = ABSState
 
   , absTime     :: Time
   , absEvtIdx   :: Integer
+  -- TODO: need all agents MSFs here as well when wanting to
+  -- implement TXs here
   }
 
 type ABSMonad m e = StateT (ABSState e) m
