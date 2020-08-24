@@ -1,4 +1,6 @@
 # chimera
+*NOTE: THIS PROJECT HAS BEEN DISCONTINUED AND IS INACTIVE*
+
 A library for pure functional Agent-Based Simulation.
 
 This library is being developed during my PhD in which I am exploring the benefits and drawbacks of using the functional programming paradigm in Haskell for implementing Agent-Based Simulations. My research led into an approach I termed Functional Reactive Agent-Based Simulation (FrABS) which I implemented in this library. Due to its hybrid approach (it can easily implement SD and with a bit more work DES) I termed my library 'chimera' after the Chimera from the gree mythology which is also a hybrid being: "[...] usually depicted as a lion, with the head of a goat arising from its back, and a tail that might end with a snakes head [...]" (Wikipedia).
